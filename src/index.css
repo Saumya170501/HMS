@@ -1,0 +1,224 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Light Mode (Default) */
+  --background: #f8fafc;
+  /* Slate 50 */
+  --surface: #ffffff;
+  /* White */
+  --border: #e2e8f0;
+  /* Slate 200 */
+  --text-primary: #0f172a;
+  /* Slate 900 */
+  --text-secondary: #64748b;
+  /* Slate 500 */
+
+  --gain-muted: #dcfce7;
+  /* Green 100 */
+  --loss-muted: #fee2e2;
+  /* Red 100 */
+  --warning-muted: #fef3c7;
+  /* Amber 100 */
+
+  /* Glass Variables (Light) */
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(226, 232, 240, 0.6);
+  --glass-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --glass-overlay: rgba(255, 255, 255, 0.5);
+}
+
+.dark {
+  /* Dark Mode */
+  --background: #0f172a;
+  /* Slate 900 */
+  --surface: #1e293b;
+  /* Slate 800 */
+  --border: #334155;
+  /* Slate 700 */
+  --text-primary: #e2e8f0;
+  /* Slate 200 */
+  --text-secondary: #94a3b8;
+  /* Slate 400 */
+
+  --gain-muted: #16a34a;
+  /* Green 600 */
+  --loss-muted: #dc2626;
+  /* Red 600 */
+  --warning-muted: #d97706;
+  /* Amber 600 */
+
+  /* Glass Variables (Dark) */
+  --glass-bg: rgba(15, 23, 42, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --glass-overlay: rgba(15, 23, 42, 0.7);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--background);
+  color: var(--text-primary);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-secondary);
+  border-radius: 4px;
+  opacity: 0.5;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Treemap animations */
+.treemap-block {
+  transition: all 0.3s ease-out;
+}
+
+/* Grayscale filter for after-hours */
+.grayscale-mode {
+  filter: grayscale(100%);
+  opacity: 0.7;
+}
+
+/* Pulsing animation for live indicator */
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.live-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Smooth color transitions */
+.color-transition {
+  transition: background-color 0.5s ease-out, color 0.3s ease-out;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Slide in animation */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slideIn {
+  animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Progress bar animation */
+@keyframes progress {
+  from {
+    width: 0%;
+  }
+
+  to {
+    width: 100%;
+  }
+}
+
+.animate-progress {
+  animation: progress 5s linear forwards;
+}
+
+/* Glass morphism effects */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  transition: all 0.3s ease;
+}
+
+.glass-card-light {
+  background: rgba(30, 41, 59, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* Scale on hover */
+.hover-scale {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+/* Glow effect for important elements */
+.glow-blue {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+.glow-green {
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+}
+
+.glow-red {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+}
