@@ -94,7 +94,19 @@ binanceWs.on('open', () => {
         params: cryptoSymbols.map(s => `${s}@ticker`),
         id: 1
     };
+
+
+    binanceWs.on('error', (error) => {
+        console.error('⚠️ Binance WebSocket Error:', error.message);
+        // Optional: Implement reconnect logic or fallback
+    });
+
     binanceWs.send(JSON.stringify(subscribeMsg));
+});
+
+binanceWs.on('error', (error) => {
+    console.error('⚠️ Binance WebSocket Error:', error.message);
+    // Optional: Implement reconnect logic or fallback
 });
 
 binanceWs.on('message', (data) => {
@@ -120,6 +132,11 @@ finnhubWs.on('open', () => {
     marketData.stocks.forEach(stock => {
         finnhubWs.send(JSON.stringify({ type: 'subscribe', symbol: stock.symbol }));
     });
+});
+
+finnhubWs.on('error', (error) => {
+    console.error('⚠️ Finnhub WebSocket Error:', error.message);
+    // Optional: Implement reconnect logic or fallback
 });
 
 finnhubWs.on('message', (data) => {
