@@ -54,15 +54,34 @@ export const downloadFile = (content, fileName, mimeType) => {
  * @param {string} filename - Base filename (without extension)
  * @param {string} format - 'csv' or 'json'
  */
-export const exportData = (data, filename, format = 'csv') => {
-    const timestamp = new Date().toISOString().split('T')[0];
-    const fullFilename = `${filename}_${timestamp}.${format}`;
+export const exportData = (data, filename, format = 'csv', includeMetadata = true) => {
+    const timestamp = new Date().toISOString();
+    const cleanFilename = `${filename}_${timestamp.split('T')[0]}`;
+    const fullFilename = `${cleanFilename}.${format}`;
+
+    let content = '';
+    const mimeType = format === 'json' ? 'application/json' : 'text/csv';
 
     if (format === 'json') {
-        const jsonContent = JSON.stringify(data, null, 2);
-        downloadFile(jsonContent, fullFilename, 'application/json');
+        const exportObj = includeMetadata ? {
+            metadata: {
+                source: 'MarketVue',
+                timestamp: timestamp,
+                recordCount: data.length
+            },
+            data: data
+        } : data;
+        content = JSON.stringify(exportObj, null, 2);
     } else {
-        const csvContent = convertToCSV(data);
-        downloadFile(csvContent, fullFilename, 'text/csv');
+        // CSV
+        let csvBody = convertToCSV(data);
+        if (includeMetadata) {
+            const metadataHeader = `# Source: MarketVue, Timestamp: ${timestamp}, Records: ${data.length}\n`;
+            content = metadataHeader + csvBody;
+        } else {
+            content = csvBody;
+        }
     }
+
+    downloadFile(content, fullFilename, mimeType);
 };

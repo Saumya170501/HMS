@@ -1,24 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import useThemeStore from '../hooks/useThemeStore';
 
-// Default settings
-const DEFAULT_SETTINGS = {
-    correlationLookback: 90,
-    aiExplanations: true,
-    aiDetailLevel: 'detailed',
-    theme: 'dark',
-    refreshInterval: 30,
-    showAfterHoursGrayscale: true,
-    alertSound: 'default',
-    alertDuration: 5000,
-    exportFormat: 'csv',
-    exportMetadata: true,
-    notifications: {
-        correlationAlerts: true,
-        priceAlerts: false,
-        marketNews: true,
-        volumeSpikes: false
-    }
-};
+
 
 // Setting Section Component
 const SettingSection = ({ title, description, children }) => (
@@ -97,45 +80,28 @@ const Select = ({ label, description, options, value, onChange }) => (
     </div>
 );
 
+import useSettingsStore from '../hooks/useSettingsStore';
+
 export default function Settings() {
-    const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+    const { settings, updateSetting, updateNotification, resetSettings } = useSettingsStore();
+    const { theme, setTheme } = useThemeStore();
     const [saved, setSaved] = useState(false);
 
-    // Load settings from localStorage on mount
+    // Sync theme changes to global store immediately
     useEffect(() => {
-        const savedSettings = localStorage.getItem('marketvue_settings');
-        if (savedSettings) {
-            try {
-                setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(savedSettings) });
-            } catch (e) {
-                console.error('Failed to parse saved settings');
-            }
-        }
-    }, []);
+        setTheme(settings.theme);
+    }, [settings.theme, setTheme]);
 
-    // Save settings
+    // Save visual feedback wrapper
     const handleSave = () => {
-        localStorage.setItem('marketvue_settings', JSON.stringify(settings));
+        // Zustand persists automatically, just show feedback
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
     };
 
-    // Reset to defaults
+    // Reset wrapper
     const handleReset = () => {
-        setSettings(DEFAULT_SETTINGS);
-        localStorage.removeItem('marketvue_settings');
-    };
-
-    // Update nested settings
-    const updateSetting = (key, value) => {
-        setSettings(prev => ({ ...prev, [key]: value }));
-    };
-
-    const updateNotification = (key, value) => {
-        setSettings(prev => ({
-            ...prev,
-            notifications: { ...prev.notifications, [key]: value }
-        }));
+        resetSettings();
     };
 
     return (

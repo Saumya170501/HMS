@@ -194,10 +194,17 @@ const VolatilityAlertsWidget = ({ alerts, isLoading }) => (
     </div>
 );
 
+import useSettingsStore from '../hooks/useSettingsStore';
+
+// ... imports
+
 export default function Dashboard() {
     const [volatilityAlerts, setVolatilityAlerts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingAlerts, setIsLoadingAlerts] = useState(true);
+
+    // Get settings
+    const refreshInterval = useSettingsStore(state => state.settings.refreshInterval);
 
     // Get real-time data from store
     const marketData = useMarketStore(state => state.marketData);
@@ -246,10 +253,11 @@ export default function Dashboard() {
         }
         fetchAlerts();
 
-        // Refresh alerts every 60 seconds
-        const interval = setInterval(fetchAlerts, 60000);
+        // Refresh alerts based on settings
+        const intervalMs = refreshInterval * 1000;
+        const interval = setInterval(fetchAlerts, intervalMs);
         return () => clearInterval(interval);
-    }, []);
+    }, [refreshInterval]);
 
     // Calculate summary stats using store data
     const getTotalMarketCap = () => {

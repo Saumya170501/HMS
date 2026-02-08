@@ -69,7 +69,14 @@ export async function findTopCorrelatedAssets(targetSymbol, allAssets, timeframe
             const assetHistory = await getHistoricalPrices(asset.symbol, timeframeDays, guessType(asset.symbol));
             const assetPrices = assetHistory.map(h => h.close);
             const assetReturns = calculateDailyReturns(assetPrices);
-            const correlation = calculateCorrelation(targetReturns, assetReturns);
+            let correlation = calculateCorrelation(targetReturns, assetReturns);
+
+            // Handle error case
+            if (typeof correlation === 'object' && correlation !== null) {
+                // console.warn(`Correlation error for ${asset.symbol}:`, correlation.error);
+                correlation = 0;
+            }
+
             const { strength, direction } = classifyCorrelation(correlation);
             correlations.push({ symbol: asset.symbol, name: asset.name, correlation, strength, direction });
         } catch (error) {

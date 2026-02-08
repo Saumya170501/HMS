@@ -36,37 +36,37 @@ const cache = {
 // Initial Market Data (Baseline) with better P/L simulation
 const marketData = {
     crypto: [
-        { id: 'btc', symbol: 'BTC', name: 'Bitcoin', marketCap: 1200000000000, price: 67500, change: 0, prevPrice: 67200 },
-        { id: 'eth', symbol: 'ETH', name: 'Ethereum', marketCap: 380000000000, price: 3450, change: 0, prevPrice: 3480 },
-        { id: 'sol', symbol: 'SOL', name: 'Solana', marketCap: 78000000000, price: 175, change: 0, prevPrice: 170 },
-        { id: 'bnb', symbol: 'BNB', name: 'Binance Coin', marketCap: 85000000000, price: 580, change: 0, prevPrice: 575 },
-        { id: 'xrp', symbol: 'XRP', name: 'Ripple', marketCap: 65000000000, price: 0.62, change: 0, prevPrice: 0.61 },
-        { id: 'ada', symbol: 'ADA', name: 'Cardano', marketCap: 45000000000, price: 0.65, change: 0, prevPrice: 0.66 },
-        { id: 'doge', symbol: 'DOGE', name: 'Dogecoin', marketCap: 42000000000, price: 0.18, change: 0, prevPrice: 0.19 },
-        { id: 'avax', symbol: 'AVAX', name: 'Avalanche', marketCap: 38000000000, price: 42, change: 0, prevPrice: 41 },
-        { id: 'dot', symbol: 'DOT', name: 'Polkadot', marketCap: 28000000000, price: 8.5, change: 0, prevPrice: 8.3 },
-        { id: 'matic', symbol: 'MATIC', name: 'Polygon', marketCap: 25000000000, price: 0.95, change: 0, prevPrice: 0.96 },
-        { id: 'link', symbol: 'LINK', name: 'Chainlink', marketCap: 18000000000, price: 18.5, change: 0, prevPrice: 18.2 },
-        { id: 'uni', symbol: 'UNI', name: 'Uniswap', marketCap: 12000000000, price: 12.8, change: 0, prevPrice: 13.0 },
+        { id: 'btc', symbol: 'BTC', name: 'Bitcoin', marketCap: 1800000000000, price: 98500, change: 2.5, prevPrice: 96100 },
+        { id: 'eth', symbol: 'ETH', name: 'Ethereum', marketCap: 450000000000, price: 3850, change: 1.2, prevPrice: 3805 },
+        { id: 'sol', symbol: 'SOL', name: 'Solana', marketCap: 95000000000, price: 210, change: 3.5, prevPrice: 203 },
+        { id: 'bnb', symbol: 'BNB', name: 'Binance Coin', marketCap: 92000000000, price: 640, change: 0.5, prevPrice: 637 },
+        { id: 'xrp', symbol: 'XRP', name: 'Ripple', marketCap: 70000000000, price: 0.85, change: -1.2, prevPrice: 0.86 },
+        { id: 'ada', symbol: 'ADA', name: 'Cardano', marketCap: 50000000000, price: 0.75, change: 0.8, prevPrice: 0.74 },
+        { id: 'doge', symbol: 'DOGE', name: 'Dogecoin', marketCap: 48000000000, price: 0.22, change: 4.5, prevPrice: 0.21 },
+        { id: 'avax', symbol: 'AVAX', name: 'Avalanche', marketCap: 42000000000, price: 55, change: -0.5, prevPrice: 55.3 },
+        { id: 'dot', symbol: 'DOT', name: 'Polkadot', marketCap: 32000000000, price: 10.5, change: 1.1, prevPrice: 10.4 },
+        { id: 'matic', symbol: 'MATIC', name: 'Polygon', marketCap: 28000000000, price: 1.15, change: -0.8, prevPrice: 1.16 },
+        { id: 'link', symbol: 'LINK', name: 'Chainlink', marketCap: 21000000000, price: 22.5, change: 2.1, prevPrice: 22.0 },
+        { id: 'uni', symbol: 'UNI', name: 'Uniswap', marketCap: 15000000000, price: 15.8, change: 0.5, prevPrice: 15.7 },
     ],
     stocks: [
-        { id: 'aapl', symbol: 'AAPL', name: 'Apple Inc.', marketCap: 3000000000000, price: 195.5, change: 0, prevPrice: 193.0 },
-        { id: 'msft', symbol: 'MSFT', name: 'Microsoft', marketCap: 2800000000000, price: 415.2, change: 0, prevPrice: 412.0 },
-        { id: 'googl', symbol: 'GOOGL', name: 'Alphabet', marketCap: 1900000000000, price: 175.8, change: 0, prevPrice: 176.5 },
-        { id: 'amzn', symbol: 'AMZN', name: 'Amazon', marketCap: 1800000000000, price: 185.6, change: 0, prevPrice: 184.0 },
-        { id: 'nvda', symbol: 'NVDA', name: 'NVIDIA', marketCap: 1500000000000, price: 875.4, change: 0, prevPrice: 860.0 },
-        { id: 'meta', symbol: 'META', name: 'Meta Platforms', marketCap: 1200000000000, price: 505.3, change: 0, prevPrice: 510.0 },
-        { id: 'tsla', symbol: 'TSLA', name: 'Tesla', marketCap: 750000000000, price: 248.9, change: 0, prevPrice: 240.0 },
-        { id: 'brk-b', symbol: 'BRK.B', name: 'Berkshire Hathaway', marketCap: 780000000000, price: 412.6, change: 0, prevPrice: 415.0 },
-        { id: 'jpm', symbol: 'JPM', name: 'JPMorgan Chase', marketCap: 550000000000, price: 198.4, change: 0, prevPrice: 195.0 },
-        { id: 'v', symbol: 'V', name: 'Visa Inc.', marketCap: 520000000000, price: 285.7, change: 0, prevPrice: 288.0 },
-        { id: 'wmt', symbol: 'WMT', name: 'Walmart', marketCap: 480000000000, price: 168.3, change: 0, prevPrice: 167.0 },
-        { id: 'ma', symbol: 'MA', name: 'Mastercard', marketCap: 420000000000, price: 465.2, change: 0, prevPrice: 460.0 },
+        { id: 'aapl', symbol: 'AAPL', name: 'Apple Inc.', marketCap: 3400000000000, price: 235.5, change: 1.2, prevPrice: 232.7 },
+        { id: 'msft', symbol: 'MSFT', name: 'Microsoft', marketCap: 3200000000000, price: 445.2, change: -0.5, prevPrice: 447.4 },
+        { id: 'googl', symbol: 'GOOGL', name: 'Alphabet', marketCap: 2100000000000, price: 185.8, change: 0.8, prevPrice: 184.3 },
+        { id: 'amzn', symbol: 'AMZN', name: 'Amazon', marketCap: 2000000000000, price: 205.6, change: 1.5, prevPrice: 202.5 },
+        { id: 'nvda', symbol: 'NVDA', name: 'NVIDIA', marketCap: 3100000000000, price: 142.4, change: 2.8, prevPrice: 138.5 }, // Post-split price
+        { id: 'meta', symbol: 'META', name: 'Meta Platforms', marketCap: 1400000000000, price: 585.3, change: -1.1, prevPrice: 591.8 },
+        { id: 'tsla', symbol: 'TSLA', name: 'Tesla', marketCap: 850000000000, price: 268.9, change: 3.2, prevPrice: 260.5 },
+        { id: 'brk-b', symbol: 'BRK.B', name: 'Berkshire Hathaway', marketCap: 900000000000, price: 462.6, change: 0.2, prevPrice: 461.7 },
+        { id: 'jpm', symbol: 'JPM', name: 'JPMorgan Chase', marketCap: 600000000000, price: 218.4, change: -0.4, prevPrice: 219.3 },
+        { id: 'v', symbol: 'V', name: 'Visa Inc.', marketCap: 560000000000, price: 305.7, change: 0.6, prevPrice: 303.9 },
+        { id: 'wmt', symbol: 'WMT', name: 'Walmart', marketCap: 520000000000, price: 88.3, change: 1.1, prevPrice: 87.3 }, // Post-split
+        { id: 'ma', symbol: 'MA', name: 'Mastercard', marketCap: 450000000000, price: 505.2, change: 0.9, prevPrice: 500.7 },
     ],
     commodities: [
-        { id: 'gold', symbol: 'GOLD', name: 'Gold', marketCap: 12000000000000, price: 2045.5, change: 0, prevPrice: 2030.0 },
-        { id: 'silver', symbol: 'SILVER', name: 'Silver', marketCap: 1400000000000, price: 23.85, change: 0, prevPrice: 24.0 },
-        { id: 'oil', symbol: 'CL', name: 'Crude Oil', marketCap: 2500000000000, price: 78.45, change: 0, prevPrice: 77.50 },
+        { id: 'gold', symbol: 'GOLD', name: 'Gold', marketCap: 14000000000000, price: 2650.5, change: 0.5, prevPrice: 2637.3 },
+        { id: 'silver', symbol: 'SILVER', name: 'Silver', marketCap: 1600000000000, price: 32.85, change: -1.2, prevPrice: 33.25 },
+        { id: 'oil', symbol: 'CL', name: 'Crude Oil', marketCap: 2800000000000, price: 74.45, change: 1.5, prevPrice: 73.35 },
     ]
 };
 
@@ -229,15 +229,45 @@ async function fetchAlphaVantageHistory(symbol, days) {
     }
 }
 
+async function fetchCoinGeckoHistory(symbol, days) {
+    try {
+        // Map common symbols to CoinGecko IDs
+        const map = {
+            'BTC': 'bitcoin', 'ETH': 'ethereum', 'SOL': 'solana', 'BNB': 'binancecoin',
+            'XRP': 'ripple', 'ADA': 'cardano', 'DOGE': 'dogecoin', 'AVAX': 'avalanche-2',
+            'DOT': 'polkadot', 'MATIC': 'matic-network', 'LINK': 'chainlink', 'UNI': 'uniswap'
+        };
+        const id = map[symbol.toUpperCase()];
+        if (!id) throw new Error('Symbol not mapped');
+
+        const url = `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}`;
+        const response = await axios.get(url);
+
+        return response.data.prices.map(p => ({
+            date: new Date(p[0]).toISOString().split('T')[0],
+            close: p[1],
+            open: p[1], // CoinGecko doesn't provide OHLC in this endpoint, only prices
+            high: p[1],
+            low: p[1]
+        }));
+    } catch (error) {
+        throw new Error('CoinGecko fetch failed');
+    }
+}
+
 function generateMockHistoricalData(symbol, days) {
     let basePrice = 100;
+    let found = false;
 
     // Try to find current price from active market data
     const allAssets = [...marketData.crypto, ...marketData.stocks, ...marketData.commodities];
-    const asset = allAssets.find(a => a.symbol.toUpperCase() === symbol.toUpperCase());
+    const asset = allAssets.find(a => a.symbol.toUpperCase() === symbol.trim().toUpperCase());
 
     if (asset && asset.price) {
         basePrice = asset.price;
+        found = true;
+    } else {
+        console.warn(`⚠️ Mock Gen: Asset ${symbol} not found in live data. Using default $100.`);
     }
 
     const data = [];
@@ -254,10 +284,10 @@ function generateMockHistoricalData(symbol, days) {
 
         data.push({
             date: date.toISOString().split('T')[0],
-            close: Math.round(price * 100) / 100,
-            open: Math.round(price * 100) / 100,
-            high: Math.round(price * 1.01 * 100) / 100,
-            low: Math.round(price * 0.99 * 100) / 100
+            close: price,
+            open: price * (1 + (Math.random() - 0.5) * 0.01),
+            high: price * (1 + Math.random() * 0.015),
+            low: price * (1 - Math.random() * 0.015)
         });
     }
     return data;
@@ -273,18 +303,23 @@ async function getHistoricalData(symbol, type, days) {
     // Priority 1: Primary API
     try {
         if (type === 'crypto') {
-            data = await fetchBinanceHistory(symbol, days);
+            try {
+                data = await fetchBinanceHistory(symbol, days);
+            } catch (binanceErr) {
+                console.warn(`Binance failed for ${symbol}, trying CoinGecko...`);
+                data = await fetchCoinGeckoHistory(symbol, days);
+            }
         } else {
             // Try Finnhub first, then Alpha Vantage
             try {
                 data = await fetchFinnhubHistory(symbol, days);
             } catch (err) {
-                console.log(`Switching to Alpha Vantage for ${symbol}...`);
+                console.warn(`Finnhub failed for ${symbol}, switching to Alpha Vantage...`);
                 data = await fetchAlphaVantageHistory(symbol, days);
             }
         }
     } catch (err) {
-        console.error(`Primary API failed for ${symbol}:`, err.message);
+        console.error(`All APIs failed for ${symbol}:`, err.message);
     }
 
     // Priority 2: Mock Data (Last Resort)
@@ -297,6 +332,59 @@ async function getHistoricalData(symbol, type, days) {
 
     return data;
 }
+
+// COMMODITIES POLLING
+async function updateCommodities() {
+    console.log('🔄 Updating Commodities...');
+
+    // Alpha Vantage Symbols: GOLD -> GC=F, SILVER -> SI=F, OIL -> CL=F
+    // Or use Finnhub if available (often requires paid tier for commodities)
+
+    const commoditiesMap = {
+        'GOLD': 'GC=F',
+        'SILVER': 'SI=F',
+        'CL': 'CL=F'
+    };
+
+    for (const commodity of marketData.commodities) {
+        try {
+            // Using Alpha Vantage Global Quote or Finnhub fallback
+            // Try Finnhub quote first as it's faster if accessible
+            try {
+                // Mapping for Finnhub OANDA symbols
+                const finnhubSymbol = commodity.symbol === 'GOLD' ? 'OANDA:XAU_USD' :
+                    commodity.symbol === 'SILVER' ? 'OANDA:XAG_USD' :
+                        'OANDA:WTICO_USD';
+
+                const url = `https://finnhub.io/api/v1/quote?symbol=${finnhubSymbol}&token=${FINNHUB_KEY}`;
+                const response = await axios.get(url);
+
+                if (response.data && response.data.c > 0) {
+                    commodity.price = response.data.c;
+                    commodity.change = response.data.dp; // dp is percent change
+                    console.log(`✅ Updated ${commodity.symbol}: $${commodity.price}`);
+                    continue; // Success, skip fallback
+                }
+            } catch (err) {
+                // Finnhub failed, try Alpha Vantage
+            }
+
+            // Fallback: Add mock volatility to keep it alive if API fails
+            const volatility = 0.005; // 0.5% volatility
+            const change = (Math.random() - 0.5) * volatility;
+            commodity.price = Math.round(commodity.price * (1 + change) * 100) / 100;
+
+        } catch (error) {
+            console.error(`Error updating commodity ${commodity.symbol}:`, error.message);
+        }
+    }
+}
+
+// Start polling commodities every 2 minutes
+setInterval(updateCommodities, 120000);
+// Initial update after 5 seconds
+setTimeout(updateCommodities, 5000);
+
 
 // ==========================================
 // 4. API ENDPOINTS

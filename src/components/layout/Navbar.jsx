@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SearchBar from '../SearchBar';
 
-import { Sun, Moon, Bell } from 'lucide-react';
+import { Sun, Moon, Bell, LogOut, User, ChevronDown } from 'lucide-react';
 import useThemeStore from '../../hooks/useThemeStore';
 import { getDashboardVolatilityAlerts } from '../../services/volatilityService';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Navbar() {
     const navigate = useNavigate();
@@ -12,6 +13,17 @@ export default function Navbar() {
     const { isDarkMode, toggleTheme } = useThemeStore();
     const [alerts, setAlerts] = useState([]);
     const [showDropdown, setShowDropdown] = useState(false);
+    const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const { currentUser, logout } = useAuth();
+
+    const handleLogout = async () => {
+        try {
+            await logout();
+            navigate('/login');
+        } catch (error) {
+            console.error('Failed to log out', error);
+        }
+    };
 
     // Update time every second
     React.useEffect(() => {
@@ -130,14 +142,58 @@ export default function Navbar() {
                 </div>
 
                 {/* Profile */}
-                <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-bold">U</span>
-                    </div>
-                    <div className="hidden md:block">
-                        <div className="text-sm font-medium text-slate-200">Free Tier</div>
-                        <div className="text-xs text-slate-500">15-min delay</div>
-                    </div>
+                <div className="relative">
+                    <button
+                        onClick={() => setShowProfileMenu(!showProfileMenu)}
+                        className="flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-xl transition-colors"
+                    >
+                        {currentUser?.photoURL ? (
+                            <img
+                                src={currentUser.photoURL}
+                                alt="Profile"
+                                className="w-9 h-9 rounded-full border border-slate-600"
+                            />
+                        ) : (
+                            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                                <span className="text-sm font-bold">
+                                    {currentUser?.email?.charAt(0).toUpperCase() || 'U'}
+                                </span>
+                            </div>
+                        )}
+                        <div className="hidden md:block text-left">
+                            <div className="text-sm font-medium text-slate-200">
+                                {currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User'}
+                            </div>
+                            <div className="text-[10px] text-slate-500 flex items-center gap-1">
+                                {currentUser?.emailVerified ? 'Verified' : 'Free Plan'}
+                                <ChevronDown className="w-3 h-3" />
+                            </div>
+                        </div>
+                    </button>
+
+                    {/* Profile Dropdown */}
+                    {showProfileMenu && (
+                        <div className="absolute right-0 mt-2 w-48 bg-surface border border-border rounded-xl shadow-xl overflow-hidden z-50 animate-fadeIn">
+                            <div className="p-3 border-b border-border bg-slate-50 dark:bg-slate-900/50">
+                                <p className="text-xs text-slate-500 font-medium">Signed in as</p>
+                                <p className="text-sm font-bold truncate text-primary">{currentUser?.email}</p>
+                            </div>
+                            <div className="p-1">
+                                <button
+                                    onClick={() => navigate('/settings')}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+                                >
+                                    <User className="w-4 h-4" /> Profile
+                                </button>
+                                <button
+                                    onClick={handleLogout}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+                                >
+                                    <LogOut className="w-4 h-4" /> Sign Out
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </header>

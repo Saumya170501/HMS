@@ -118,7 +118,7 @@ const CorrelationPopup = ({ asset, correlations, onClose, position }) => {
                         </div>
                         <div className="flex items-center gap-2">
                             <span className={`font-mono text-sm font-bold ${getStrengthColor(corr.strength, corr.direction)}`}>
-                                {corr.correlation.toFixed(2)}
+                                {typeof corr.correlation === 'number' ? corr.correlation.toFixed(2) : '0.00'}
                             </span>
                             <span className="text-xs text-slate-500 capitalize">{corr.strength}</span>
                         </div>
@@ -260,6 +260,15 @@ export default function HeatmapContainer({ paneId, title }) {
         paneId === 'left' ? state.leftPane : state.rightPane
     );
     const setPaneMarket = useMarketStore((state) => state.setPaneMarket);
+
+    // Guard against undefined pane
+    if (!pane) {
+        return (
+            <div className="flex items-center justify-center h-full bg-dark-surface border border-dark-border rounded-xl">
+                <div className="text-slate-500">Initializing...</div>
+            </div>
+        );
+    }
 
     const selectedMarket = pane.selectedMarket;
 

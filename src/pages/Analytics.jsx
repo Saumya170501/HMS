@@ -1,13 +1,23 @@
 import React, { useState } from 'react';
 import { Download, PieChart, TrendingUp, Calendar, ArrowUpRight } from 'lucide-react';
+import useSettingsStore from '../hooks/useSettingsStore';
 import useMarketStore from '../store';
 import { exportData } from '../services/exportUtility';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 export default function Analytics() {
     const marketData = useMarketStore(state => state.marketData);
+    const correlationLookback = useSettingsStore(state => state.settings.correlationLookback);
 
-    const [timeRange, setTimeRange] = useState('30d');
+    // Map numerical lookback to string format
+    const getLookbackString = (days) => {
+        if (days <= 7) return '7d';
+        if (days <= 30) return '30d';
+        if (days <= 90) return '90d';
+        return 'YTD';
+    };
+
+    const [timeRange, setTimeRange] = useState(getLookbackString(correlationLookback));
 
     // Mock performance data generation
     const generatePerformanceData = () => {
@@ -32,7 +42,9 @@ export default function Analytics() {
             ...marketData.crypto,
             ...marketData.commodities
         ];
-        exportData(allAssets, 'market_analytics', format);
+        // Get settings
+        const { exportMetadata } = useSettingsStore.getState().settings;
+        exportData(allAssets, 'market_analytics', format, exportMetadata);
     };
 
     return (

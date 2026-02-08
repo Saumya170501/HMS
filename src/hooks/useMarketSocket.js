@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import useMarketStore from '../store';
 
-const WS_URL = 'ws://localhost:8080';
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8080';
 
 /**
  * Custom hook for WebSocket market data connection
