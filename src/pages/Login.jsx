@@ -7,20 +7,72 @@ export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [emailError, setEmailError] = useState('');
+    const [passwordError, setPasswordError] = useState('');
     const [loading, setLoading] = useState(false);
 
     const { login, googleSignIn } = useAuth();
     const navigate = useNavigate();
 
+    // Email validation
+    const validateEmail = (email) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
+
+    // Handle email change with validation
+    const handleEmailChange = (e) => {
+        const value = e.target.value;
+        setEmail(value);
+        if (value && !validateEmail(value)) {
+            setEmailError('Please enter a valid email address');
+        } else {
+            setEmailError('');
+        }
+    };
+
+    // Handle password change with validation
+    const handlePasswordChange = (e) => {
+        const value = e.target.value;
+        setPassword(value);
+        if (!value) {
+            setPasswordError('Password is required');
+        } else {
+            setPasswordError('');
+        }
+    };
+
     async function handleSubmit(e) {
         e.preventDefault();
+
+        // Clear previous errors
+        setError('');
+        setEmailError('');
+        setPasswordError('');
+
+        // Validate before submission
+        let hasError = false;
+        if (!email) {
+            setEmailError('Email is required');
+            hasError = true;
+        } else if (!validateEmail(email)) {
+            setEmailError('Please enter a valid email address');
+            hasError = true;
+        }
+
+        if (!password) {
+            setPasswordError('Password is required');
+            hasError = true;
+        }
+
+        if (hasError) return;
+
         try {
-            setError('');
             setLoading(true);
             await login(email, password);
             navigate('/dashboard');
         } catch (error) {
-            setError('Failed to log in: ' + error.message);
+            setError('Invalid email or password. Please try again.');
         }
         setLoading(false);
     }
@@ -47,7 +99,47 @@ export default function Login() {
                 </div>
 
                 <div className="relative z-10">
-                    <div className="flex items-center gap-2 mb-8">
+                    {/* MarketVue Branding */}
+                    <div className="flex items-center gap-2 mb-12">
+                        <div className="w-12 h-12 bg-gradient-to-tr from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                            <TrendingUp className="text-white w-7 h-7" />
+                        </div>
+                        <span className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+                            MarketVue
+                        </span>
+                    </div>
+
+                    {/* Primary H1 Heading */}
+                    <h1 className="text-6xl font-extrabold leading-tight mb-6 text-white">
+                        Dual-Viewport <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-400 to-blue-400">
+                            Market Heatmap
+                        </span>
+                    </h1>
+
+                    {/* Explanation */}
+                    <p className="text-lg text-slate-300 mb-8 leading-relaxed max-w-md">
+                        Compare market performance across two timeframes simultaneously with synchronized heatmaps
+                    </p>
+
+                    <p className="text-sm text-slate-400 leading-relaxed max-w-md">
+                        View S&P 500 stocks in two independent charts—compare daily moves against weekly trends, or track sectors alongside individual stocks
+                    </p>
+                </div>
+
+                {/* Welcome subheading */}
+                <div className="relative z-10">
+                    <p className="text-2xl font-semibold text-slate-300">
+                        Welcome back to the market
+                    </p>
+                </div>
+            </div>
+
+            {/* Right Side - Form */}
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-12 bg-surface">
+                <div className="max-w-md w-full">
+                    {/* Mobile branding */}
+                    <div className="flex items-center gap-2 mb-8 lg:hidden justify-center">
                         <div className="w-10 h-10 bg-gradient-to-tr from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
                             <TrendingUp className="text-white w-6 h-6" />
                         </div>
@@ -56,37 +148,74 @@ export default function Login() {
                         </span>
                     </div>
 
-                    <h1 className="text-5xl font-bold leading-tight mb-6">
-                        Welcome Back <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">
-                            To The Market
-                        </span>
-                    </h1>
-                </div>
+                    <div className="text-center lg:text-left mb-8">
+                        <h2 className="text-2xl font-bold text-white mb-3">Sign In</h2>
+                        <p className="text-sm text-slate-400">
+                            Monitor your watchlist, analyze sector heatmaps, and track portfolio performance in real-time
+                        </p>
+                    </div>
 
-                <div className="relative z-10 space-y-4">
-                    <div className="bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 max-w-sm">
-                        <div className="flex items-center gap-4 mb-2">
-                            <div className="p-2 bg-blue-500/20 rounded-lg text-blue-400">
-                                <BarChart3 className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-white">Advanced Charting</h4>
-                                <p className="text-xs text-slate-400">Visualize trends like never before.</p>
+                    {/* Hero Image Section */}
+                    <div className="w-full my-6">
+                        <div className="relative rounded-xl overflow-hidden border border-slate-700/50 shadow-2xl shadow-blue-500/10 group">
+                            {/* Placeholder for heatmap image - replace src with actual image path */}
+                            <div className="aspect-video bg-gradient-to-br from-slate-900 via-slate-800 to-blue-950 flex items-center justify-center relative overflow-hidden">
+                                {/* Animated background effect */}
+                                <div className="absolute inset-0 opacity-30">
+                                    <div className="absolute top-0 left-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl animate-pulse"></div>
+                                    <div className="absolute bottom-0 right-0 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl animate-pulse delay-75"></div>
+                                </div>
+
+                                {/* Placeholder content - simulating dual heatmap */}
+                                <div className="relative z-10 flex gap-4 p-6 w-full">
+                                    <div className="flex-1 grid grid-cols-3 gap-2">
+                                        <div className="h-12 bg-emerald-500/30 rounded"></div>
+                                        <div className="h-12 bg-red-500/30 rounded"></div>
+                                        <div className="h-12 bg-emerald-500/40 rounded"></div>
+                                        <div className="h-12 bg-red-500/40 rounded"></div>
+                                        <div className="h-12 bg-emerald-500/20 rounded"></div>
+                                        <div className="h-12 bg-red-500/20 rounded"></div>
+                                    </div>
+                                    <div className="flex-1 grid grid-cols-3 gap-2">
+                                        <div className="h-12 bg-blue-500/30 rounded"></div>
+                                        <div className="h-12 bg-purple-500/30 rounded"></div>
+                                        <div className="h-12 bg-blue-500/40 rounded"></div>
+                                        <div className="h-12 bg-purple-500/40 rounded"></div>
+                                        <div className="h-12 bg-blue-500/20 rounded"></div>
+                                        <div className="h-12 bg-purple-500/20 rounded"></div>
+                                    </div>
+                                </div>
+
+                                {/* Overlay icon */}
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Zap className="w-12 h-12 text-blue-400" />
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Right Side - Form */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-surface">
-                <div className="max-w-md w-full space-y-8">
-                    <div className="text-center lg:text-left">
-                        <h2 className="text-3xl font-bold text-white">Sign In</h2>
-                        <p className="mt-2 text-sm text-slate-400">
-                            Access your dashboard and portfolio
+                        <p className="text-center text-xs text-slate-500 mt-3 font-medium">
+                            Real-time market heatmaps with synchronized dual views
                         </p>
+
+                        {/* Credibility Indicators */}
+                        <div className="mt-4 pt-4 border-t border-slate-700/30">
+                            <p className="text-center text-xs text-slate-500 mb-3">
+                                Real-time market data updated intraday • Tracking S&P 500 and major indices
+                            </p>
+                            <div className="flex items-center justify-center gap-4 flex-wrap">
+                                <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                                    <span>Live data from 5,000+ stocks</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                                    <span>Updated every 15 minutes</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+                                    <span>All S&P 500 sectors</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     {error && (
@@ -98,36 +227,65 @@ export default function Login() {
                     <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Email Address</label>
+                                <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
+                                    Email Address
+                                </label>
                                 <div className="relative group">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <Mail className="h-5 w-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                                        <Mail className={`h-5 w-5 transition-colors ${emailError ? 'text-red-500' : 'text-slate-500 group-focus-within:text-blue-500'}`} />
                                     </div>
                                     <input
+                                        id="email"
                                         type="email"
                                         required
-                                        className="block w-full pl-10 pr-3 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
-                                        placeholder="name@example.com"
+                                        className={`block w-full pl-10 pr-3 py-3 bg-slate-900/50 border rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${emailError
+                                            ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500'
+                                            : 'border-slate-700 focus:ring-blue-500/50 focus:border-blue-500'
+                                            }`}
+                                        placeholder="you@example.com"
                                         value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
+                                        onChange={handleEmailChange}
                                     />
                                 </div>
+                                {emailError && (
+                                    <p className="mt-1.5 text-xs text-red-400 flex items-center gap-1">
+                                        <span className="inline-block w-1 h-1 bg-red-400 rounded-full"></span>
+                                        {emailError}
+                                    </p>
+                                )}
                             </div>
 
                             <div>
-                                <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Password</label>
+                                <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
+                                    Password
+                                </label>
                                 <div className="relative group">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <Lock className="h-5 w-5 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
+                                        <Lock className={`h-5 w-5 transition-colors ${passwordError ? 'text-red-500' : 'text-slate-500 group-focus-within:text-blue-500'}`} />
                                     </div>
                                     <input
+                                        id="password"
                                         type="password"
                                         required
-                                        className="block w-full pl-10 pr-3 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
-                                        placeholder="••••••••"
+                                        className={`block w-full pl-10 pr-3 py-3 bg-slate-900/50 border rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${passwordError
+                                            ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500'
+                                            : 'border-slate-700 focus:ring-blue-500/50 focus:border-blue-500'
+                                            }`}
+                                        placeholder="Enter your password"
                                         value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
+                                        onChange={handlePasswordChange}
                                     />
+                                </div>
+                                {passwordError && (
+                                    <p className="mt-1.5 text-xs text-red-400 flex items-center gap-1">
+                                        <span className="inline-block w-1 h-1 bg-red-400 rounded-full"></span>
+                                        {passwordError}
+                                    </p>
+                                )}
+                                <div className="mt-2 text-right">
+                                    <Link to="/reset-password" className="text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium">
+                                        Forgot password?
+                                    </Link>
                                 </div>
                             </div>
                         </div>

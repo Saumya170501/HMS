@@ -50,24 +50,59 @@ const Sparkline = ({ data, color }) => {
     );
 };
 
-// Stats Card Component
-const StatsCard = ({ title, value, change, icon: Icon, color = 'blue' }) => (
-    <div className="glass-card rounded-xl p-6 card-hover group animate-fadeIn transition-colors duration-300">
-        <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-lg hover-scale">
-                <Icon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+// Stats Card Component with unique colors and sparklines
+const StatsCard = ({ title, value, change, icon: Icon, color = 'blue', sparklineData }) => {
+    const colorStyles = {
+        blue: {
+            gradient: 'from-blue-500/20 to-cyan-500/20',
+            iconBg: 'bg-blue-500/10',
+            iconColor: 'text-blue-500',
+            glow: 'group-hover:shadow-blue-500/20'
+        },
+        green: {
+            gradient: 'from-emerald-500/20 to-teal-500/20',
+            iconBg: 'bg-emerald-500/10',
+            iconColor: 'text-emerald-500',
+            glow: 'group-hover:shadow-emerald-500/20'
+        },
+        amber: {
+            gradient: 'from-amber-500/20 to-orange-500/20',
+            iconBg: 'bg-amber-500/10',
+            iconColor: 'text-amber-500',
+            glow: 'group-hover:shadow-amber-500/20'
+        },
+        purple: {
+            gradient: 'from-purple-500/20 to-pink-500/20',
+            iconBg: 'bg-purple-500/10',
+            iconColor: 'text-purple-500',
+            glow: 'group-hover:shadow-purple-500/20'
+        }
+    };
+
+    const style = colorStyles[color] || colorStyles.blue;
+
+    return (
+        <div className={`glass-card rounded-xl p-6 card-hover group animate-fadeIn transition-all duration-300 hover:shadow-xl ${style.glow}`}>
+            <div className="flex items-center justify-between mb-4">
+                <div className={`p-3 bg-gradient-to-br ${style.gradient} rounded-xl hover-scale`}>
+                    <Icon className={`w-6 h-6 ${style.iconColor}`} />
+                </div>
+                <div className={`text-sm font-semibold px-3 py-1 rounded-full flex items-center gap-1 ${change >= 0
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                    : 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'
+                    }`}>
+                    {change >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                    {change >= 0 ? '+' : ''}{change}%
+                </div>
             </div>
-            <div className={`text-sm font-medium px-3 py-1 rounded-full ${change >= 0
-                ? 'bg-green-500/10 text-green-600 dark:text-gain-bright border border-green-500/20'
-                : 'bg-red-500/10 text-red-600 dark:text-loss-bright border border-red-500/20'
-                }`}>
-                {change >= 0 ? '+' : ''}{change}%
+            <div className="text-3xl font-bold text-primary font-mono tracking-tight">{value}</div>
+            <div className="flex items-center justify-between mt-3">
+                <div className="text-sm text-secondary font-medium">{title}</div>
+                {sparklineData && <Sparkline data={sparklineData} color={style.iconColor.replace('text-', '#').replace('-500', '')} />}
             </div>
         </div>
-        <div className="text-2xl font-bold text-primary font-mono tracking-tight">{value}</div>
-        <div className="text-sm text-secondary mt-2 font-medium">{title}</div>
-    </div>
-);
+    );
+};
 
 // Market Mover Row
 const MoverRow = ({ asset, rank }) => (
@@ -260,10 +295,11 @@ export default function Dashboard() {
     }, [refreshInterval]);
 
     // Calculate summary stats using store data
-    const getTotalMarketCap = () => {
-        const total = [...marketData.stocks, ...marketData.crypto, ...marketData.commodities]
-            .reduce((sum, a) => sum + (a.marketCap || 0), 0);
-        return `$${(total / 1e12).toFixed(2)}T`;
+    const getMarketCap = (data) => {
+        const total = data.reduce((sum, a) => sum + (a.marketCap || 0), 0);
+        if (total >= 1e12) return `$${(total / 1e12).toFixed(2)}T`;
+        if (total >= 1e9) return `$${(total / 1e9).toFixed(0)}B`;
+        return `$${(total / 1e6).toFixed(0)}M`;
     };
 
     const getAverageChange = (data) => {
@@ -288,46 +324,61 @@ export default function Dashboard() {
     return (
         <div className="p-6 space-y-6 animate-fadeIn">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-primary tracking-tight">Dashboard</h1>
-                    <p className="text-secondary text-sm font-medium mt-1">Market Overview • 15-min delayed</p>
+                    <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 tracking-tight">
+                        Dashboard
+                    </h1>
+                    <div className="flex items-center gap-3 mt-2">
+                        <p className="text-secondary text-sm font-medium">Market Overview</p>
+                        <span className="text-slate-500">•</span>
+                        <div className={`flex items-center gap-1.5 text-xs font-medium ${isConnected ? 'text-emerald-500' : 'text-amber-500'}`}>
+                            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 live-pulse' : 'bg-amber-500'}`}></span>
+                            {isConnected ? 'Live' : 'Connecting...'}
+                        </div>
+                    </div>
                 </div>
-                <Link
-                    to="/heatmap"
-                    className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-lg transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 hover-scale"
-                >
-                    <Map className="w-4 h-4" />
-                    <span className="font-medium">Open Heatmap</span>
-                    <ArrowRight className="w-4 h-4" />
-                </Link>
+                <div className="flex items-center gap-3">
+                    <Link
+                        to="/analytics"
+                        className="px-4 py-2.5 glass-card rounded-lg transition-all flex items-center gap-2 hover:bg-slate-700/50 text-secondary hover:text-primary"
+                    >
+                        <BarChart3 className="w-4 h-4" />
+                        <span className="font-medium text-sm">Analytics</span>
+                    </Link>
+                    <Link
+                        to="/heatmap"
+                        className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-lg transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20 hover:shadow-purple-500/40 hover-scale"
+                    >
+                        <Map className="w-4 h-4" />
+                        <span className="font-medium">Heatmap</span>
+                        <ArrowRight className="w-4 h-4" />
+                    </Link>
+                </div>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <StatsCard
-                    title="Total Market Cap"
-                    value={getTotalMarketCap()}
-                    change={getAverageChange([...marketData.stocks, ...marketData.crypto]).toFixed(2)}
-                    icon={Wallet}
-                />
-                <StatsCard
-                    title="Stocks Avg"
-                    value={`${getAverageChange(marketData.stocks).toFixed(2)}%`}
+                    title="Stocks Market Cap"
+                    value={getMarketCap(marketData.stocks)}
                     change={getAverageChange(marketData.stocks).toFixed(2)}
-                    icon={TrendingUp}
+                    icon={BarChart3}
+                    color="blue"
                 />
                 <StatsCard
-                    title="Crypto Avg"
-                    value={`${getAverageChange(marketData.crypto).toFixed(2)}%`}
+                    title="Crypto Market Cap"
+                    value={getMarketCap(marketData.crypto)}
                     change={getAverageChange(marketData.crypto).toFixed(2)}
                     icon={Coins}
+                    color="amber"
                 />
                 <StatsCard
-                    title="Commodities Avg"
-                    value={`${getAverageChange(marketData.commodities).toFixed(2)}%`}
+                    title="Commodities Market Cap"
+                    value={getMarketCap(marketData.commodities)}
                     change={getAverageChange(marketData.commodities).toFixed(2)}
                     icon={Droplet}
+                    color="green"
                 />
             </div>
 
@@ -338,12 +389,12 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Stocks */}
                 <div className="glass-card rounded-xl overflow-hidden animate-fadeIn">
-                    <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                    <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-gradient-to-r from-blue-500/10 via-transparent to-transparent">
                         <h3 className="font-semibold text-primary flex items-center gap-2">
                             <BarChart3 className="w-5 h-5 text-blue-500" />
                             US Stocks
                         </h3>
-                        <Link to="/heatmap" className="text-xs text-blue-400 hover:text-blue-300">
+                        <Link to="/heatmap" className="text-xs text-blue-400 hover:text-blue-300 font-medium">
                             View All →
                         </Link>
                     </div>
@@ -356,12 +407,12 @@ export default function Dashboard() {
 
                 {/* Crypto */}
                 <div className="glass-card rounded-xl overflow-hidden animate-fadeIn">
-                    <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                    <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-transparent to-transparent">
                         <h3 className="font-semibold text-primary flex items-center gap-2">
                             <Coins className="w-5 h-5 text-amber-500" />
                             Cryptocurrency
                         </h3>
-                        <Link to="/heatmap" className="text-xs text-blue-400 hover:text-blue-300">
+                        <Link to="/heatmap" className="text-xs text-amber-400 hover:text-amber-300 font-medium">
                             View All →
                         </Link>
                     </div>
@@ -374,12 +425,12 @@ export default function Dashboard() {
 
                 {/* Commodities */}
                 <div className="glass-card rounded-xl overflow-hidden animate-fadeIn">
-                    <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                    <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-gradient-to-r from-emerald-500/10 via-transparent to-transparent">
                         <h3 className="font-semibold text-primary flex items-center gap-2">
                             <Droplet className="w-5 h-5 text-emerald-500" />
                             Commodities
                         </h3>
-                        <Link to="/heatmap" className="text-xs text-blue-400 hover:text-blue-300">
+                        <Link to="/heatmap" className="text-xs text-emerald-400 hover:text-emerald-300 font-medium">
                             View All →
                         </Link>
                     </div>
