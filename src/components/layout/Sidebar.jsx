@@ -10,7 +10,8 @@ import {
     Settings,
     LineChart,
     PieChart,
-    Activity
+    Activity,
+    Briefcase
 } from 'lucide-react';
 
 const navItems = [
@@ -20,6 +21,7 @@ const navItems = [
     { path: '/compare', label: 'Compare', icon: Scale },
     { path: '/historical', label: 'Historical Data', icon: TrendingUp },
     { path: '/watchlist', label: 'Watchlist', icon: Star },
+    { path: '/portfolio', label: 'Portfolio', icon: Briefcase },
     { path: '/alerts', label: 'Price Alerts', icon: Zap },
     { path: '/analytics', label: 'Analytics', icon: PieChart },
     { path: '/settings', label: 'Settings', icon: Settings },

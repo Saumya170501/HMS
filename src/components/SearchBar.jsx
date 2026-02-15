@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import apiManager from '../services/apiManager';
+import { TrendingUp, Coins, Pickaxe, LayoutGrid } from 'lucide-react';
 
 export default function SearchBar({ onSelect, placeholder = "Search stocks, crypto, commodities..." }) {
     const [query, setQuery] = useState('');
@@ -81,10 +82,10 @@ export default function SearchBar({ onSelect, placeholder = "Search stocks, cryp
 
     const getMarketIcon = (market) => {
         switch (market) {
-            case 'stocks': return '📈';
-            case 'crypto': return '₿';
-            case 'commodities': return '🛢️';
-            default: return '📊';
+            case 'stocks': return <TrendingUp className="w-5 h-5 text-blue-500" />;
+            case 'crypto': return <Coins className="w-5 h-5 text-purple-500" />;
+            case 'commodities': return <Pickaxe className="w-5 h-5 text-amber-500" />;
+            default: return <LayoutGrid className="w-5 h-5 text-slate-500" />;
         }
     };
 
@@ -145,7 +146,7 @@ export default function SearchBar({ onSelect, placeholder = "Search stocks, cryp
                                     }`}
                                 onClick={() => handleSelect(result)}
                             >
-                                <span className="text-lg">{getMarketIcon(result.market)}</span>
+                                <span>{getMarketIcon(result.market)}</span>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
                                         <span className="font-mono font-bold text-slate-200">{result.symbol}</span>

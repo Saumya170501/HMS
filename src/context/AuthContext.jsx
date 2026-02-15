@@ -20,10 +20,19 @@ export function AuthProvider({ children }) {
     const [currentUser, setCurrentUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    async function signup(email, password) {
+    async function signup(email, password, fullName) {
         try {
             const result = await createUserWithEmailAndPassword(auth, email, password);
             console.log("Signup Auth Success:", result.user.uid);
+
+            // Update user profile with display name
+            if (fullName) {
+                const { updateProfile } = await import('firebase/auth');
+                await updateProfile(result.user, {
+                    displayName: fullName
+                });
+                console.log("User profile updated with name:", fullName);
+            }
 
             // Send Verification Email
             await sendEmailVerification(result.user);
@@ -33,6 +42,7 @@ export function AuthProvider({ children }) {
             try {
                 await setDoc(doc(db, "users", result.user.uid), {
                     email: email,
+                    name: fullName || '',
                     createdAt: new Date().toISOString(),
                     role: 'user',
                     plan: 'free'
@@ -54,6 +64,19 @@ export function AuthProvider({ children }) {
     }
 
     function logout() {
+        // Clear ALL user-specific localStorage keys to prevent data leakage
+        const userDataKeys = [
+            'portfolio',
+            'watchlist',
+            'marketvue_price_alerts',
+            'marketvue_settings',
+            'marketvue_theme',
+            'hms_historical_assetType',
+            'hms_historical_symbol',
+            'hms_historical_timeframe'
+        ];
+        userDataKeys.forEach(key => localStorage.removeItem(key));
+
         return signOut(auth);
     }
 

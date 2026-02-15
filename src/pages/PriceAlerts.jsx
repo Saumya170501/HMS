@@ -2,38 +2,41 @@ import React, { useState, useEffect } from 'react';
 import { Bell, Trash2, Plus, AlertTriangle, ArrowUpRight, ArrowDownRight, Clock } from 'lucide-react';
 import { getPriceAlerts, deletePriceAlert, addPriceAlert, deleteAllPriceAlerts } from '../services/priceAlertsService';
 import AlertModal from '../components/AlertModal';
+import { useAuth } from '../context/AuthContext';
 
 export default function PriceAlerts() {
+    const { currentUser } = useAuth();
+    const userId = currentUser?.uid;
     const [alerts, setAlerts] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingAlert, setEditingAlert] = useState(null);
 
     useEffect(() => {
         loadAlerts();
-    }, []);
+    }, [currentUser]);
 
-    const loadAlerts = () => {
-        setAlerts(getPriceAlerts());
+    const loadAlerts = async () => {
+        const data = await getPriceAlerts(userId);
+        setAlerts(data);
     };
 
-    const handleDelete = (id) => {
-        deletePriceAlert(id);
+    const handleDelete = async (id) => {
+        await deletePriceAlert(id, userId);
         loadAlerts();
     };
 
-    const handleDeleteAll = () => {
+    const handleDeleteAll = async () => {
         if (window.confirm('Are you sure you want to remove ALL alerts?')) {
-            deleteAllPriceAlerts();
+            await deleteAllPriceAlerts(userId);
             loadAlerts();
         }
     };
 
-    const handleSaveAlert = (alert) => {
+    const handleSaveAlert = async (alert) => {
         if (editingAlert) {
-            // Edit not implemented in service yet, simple delete/add replacement
-            deletePriceAlert(editingAlert.id);
+            await deletePriceAlert(editingAlert.id, userId);
         }
-        addPriceAlert(alert);
+        await addPriceAlert(alert, userId);
         loadAlerts();
         setEditingAlert(null);
     };

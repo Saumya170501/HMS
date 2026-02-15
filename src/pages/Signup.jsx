@@ -152,7 +152,7 @@ export default function Signup() {
 
         try {
             setLoading(true);
-            await signup(email, password);
+            await signup(email, password, fullName);
             navigate('/dashboard');
         } catch (error) {
             console.error("Signup Component Error:", error.code, error.message);
@@ -242,10 +242,10 @@ export default function Signup() {
                                         type="text"
                                         required
                                         className={`block w-full pl-10 pr-3 py-3 bg-slate-900/50 border rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${fullNameError
-                                                ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500'
-                                                : fullName && !fullNameError
-                                                    ? 'border-emerald-500 focus:ring-emerald-500/50 focus:border-emerald-500'
-                                                    : 'border-slate-700 focus:ring-blue-500/50 focus:border-blue-500'
+                                            ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500'
+                                            : fullName && !fullNameError
+                                                ? 'border-emerald-500 focus:ring-emerald-500/50 focus:border-emerald-500'
+                                                : 'border-slate-700 focus:ring-blue-500/50 focus:border-blue-500'
                                             }`}
                                         placeholder="John Smith"
                                         value={fullName}
@@ -274,10 +274,10 @@ export default function Signup() {
                                         type="email"
                                         required
                                         className={`block w-full pl-10 pr-3 py-3 bg-slate-900/50 border rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${emailError
-                                                ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500'
-                                                : email && !emailError
-                                                    ? 'border-emerald-500 focus:ring-emerald-500/50 focus:border-emerald-500'
-                                                    : 'border-slate-700 focus:ring-blue-500/50 focus:border-blue-500'
+                                            ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500'
+                                            : email && !emailError
+                                                ? 'border-emerald-500 focus:ring-emerald-500/50 focus:border-emerald-500'
+                                                : 'border-slate-700 focus:ring-blue-500/50 focus:border-blue-500'
                                             }`}
                                         placeholder="you@example.com"
                                         value={email}
@@ -306,10 +306,10 @@ export default function Signup() {
                                         type="password"
                                         required
                                         className={`block w-full pl-10 pr-3 py-3 bg-slate-900/50 border rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${passwordError
-                                                ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500'
-                                                : passwordStrength === 'strong'
-                                                    ? 'border-emerald-500 focus:ring-emerald-500/50 focus:border-emerald-500'
-                                                    : 'border-slate-700 focus:ring-blue-500/50 focus:border-blue-500'
+                                            ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500'
+                                            : passwordStrength === 'strong'
+                                                ? 'border-emerald-500 focus:ring-emerald-500/50 focus:border-emerald-500'
+                                                : 'border-slate-700 focus:ring-blue-500/50 focus:border-blue-500'
                                             }`}
                                         placeholder="Create a strong password"
                                         value={password}
@@ -323,13 +323,13 @@ export default function Signup() {
                                         <div className="flex items-center gap-2 mb-1">
                                             <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
                                                 <div className={`h-full transition-all duration-300 ${passwordStrength === 'weak' ? 'w-1/3 bg-red-500' :
-                                                        passwordStrength === 'medium' ? 'w-2/3 bg-yellow-500' :
-                                                            passwordStrength === 'strong' ? 'w-full bg-emerald-500' : 'w-0'
+                                                    passwordStrength === 'medium' ? 'w-2/3 bg-yellow-500' :
+                                                        passwordStrength === 'strong' ? 'w-full bg-emerald-500' : 'w-0'
                                                     }`}></div>
                                             </div>
                                             <span className={`text-xs font-medium ${passwordStrength === 'weak' ? 'text-red-400' :
-                                                    passwordStrength === 'medium' ? 'text-yellow-400' :
-                                                        passwordStrength === 'strong' ? 'text-emerald-400' : 'text-slate-500'
+                                                passwordStrength === 'medium' ? 'text-yellow-400' :
+                                                    passwordStrength === 'strong' ? 'text-emerald-400' : 'text-slate-500'
                                                 }`}>
                                                 {passwordStrength === 'weak' ? 'Weak' :
                                                     passwordStrength === 'medium' ? 'Medium' :
@@ -364,10 +364,10 @@ export default function Signup() {
                                         type="password"
                                         required
                                         className={`block w-full pl-10 pr-3 py-3 bg-slate-900/50 border rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${confirmPasswordError
-                                                ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500'
-                                                : confirmPassword && !confirmPasswordError
-                                                    ? 'border-emerald-500 focus:ring-emerald-500/50 focus:border-emerald-500'
-                                                    : 'border-slate-700 focus:ring-blue-500/50 focus:border-blue-500'
+                                            ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500'
+                                            : confirmPassword && !confirmPasswordError
+                                                ? 'border-emerald-500 focus:ring-emerald-500/50 focus:border-emerald-500'
+                                                : 'border-slate-700 focus:ring-blue-500/50 focus:border-blue-500'
                                             }`}
                                         placeholder="Re-enter password"
                                         value={confirmPassword}

@@ -1,11 +1,15 @@
 import React, { useMemo, useEffect, useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
+import { Star, Check, BarChart3 } from 'lucide-react';
 import { ResponsiveTreeMap } from '@nivo/treemap';
 import useMarketStore from '../store';
 import ConnectionIndicator from './ConnectionIndicator';
 import MarketSelector from './MarketSelector';
 import apiManager from '../services/apiManager';
 import { findTopCorrelatedAssets, classifyCorrelation } from '../services/analysisService';
+import { useAuth } from '../context/AuthContext';
+import { watchlistService } from '../services/watchlistService';
 
 /**
  * Format large numbers with abbreviations (K, M, B, T)
@@ -143,9 +147,87 @@ const CorrelationPopup = ({ asset, correlations, onClose, position }) => {
 };
 
 /**
+ * Context Menu Component (Portal)
+ */
+const ContextMenu = ({ asset, position, isWatchlisted, onClose, onToggleWatchlist, onViewDetails }) => {
+    const menuRef = useRef(null);
+
+    // Close on click outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                onClose();
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [onClose]);
+
+    // Close on ESC key
+    useEffect(() => {
+        const handleEsc = (event) => {
+            if (event.key === 'Escape') {
+                onClose();
+            }
+        };
+        document.addEventListener('keydown', handleEsc);
+        return () => document.removeEventListener('keydown', handleEsc);
+    }, [onClose]);
+
+    if (!asset) return null;
+
+    // Smart positioning to prevent overflow
+    const style = {
+        left: Math.min(position.x, window.innerWidth - 220), // Prevent right overflow
+        top: Math.min(position.y, window.innerHeight - 150), // Prevent bottom overflow
+        position: 'fixed',
+        zIndex: 9999,
+    };
+
+    return createPortal(
+        <div
+            ref={menuRef}
+            className="bg-slate-900 border border-slate-700 rounded-lg shadow-2xl py-2 min-w-[200px] animate-fadeIn"
+            style={style}
+            onClick={(e) => e.stopPropagation()}
+        >
+            <div className="px-3 py-2 border-b border-slate-700">
+                <div className="font-mono font-bold text-slate-200 text-sm">{asset.symbol}</div>
+                <div className="text-xs text-slate-500">{asset.name}</div>
+            </div>
+
+            <div className="py-1">
+                <button
+                    onClick={(e) => { e.stopPropagation(); onToggleWatchlist(); onClose(); }}
+                    className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-800 transition-colors flex items-center gap-3"
+                >
+                    {isWatchlisted ?
+                        <><Check className="w-4 h-4" /><span>Remove from Watchlist</span></> :
+                        <><Star className="w-4 h-4" /><span>Add to Watchlist</span></>
+                    }
+                </button>
+
+                <button
+                    onClick={(e) => { e.stopPropagation(); onViewDetails(); onClose(); }}
+                    className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-800 transition-colors flex items-center gap-3"
+                >
+                    <BarChart3 className="w-4 h-4" />
+                    <span>View Asset Details</span>
+                </button>
+            </div>
+
+            <div className="px-3 py-1 text-[10px] text-slate-600 text-center border-t border-slate-700">
+                Right-click for options
+            </div>
+        </div>,
+        document.body
+    );
+};
+
+/**
  * Custom node component for treemap with click handler
  */
-const CustomNode = ({ node, onNodeClick }) => {
+const CustomNode = ({ node, onNodeClick, onNodeContextMenu, isWatchlisted }) => {
     const { data } = node;
     if (!data || data.id === 'root') return null;
 
@@ -166,8 +248,24 @@ const CustomNode = ({ node, onNodeClick }) => {
         }
     };
 
+    const handleContextMenu = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (onNodeContextMenu) {
+            onNodeContextMenu(data, {
+                x: e.clientX,
+                y: e.clientY
+            });
+        }
+    };
+
     return (
-        <g transform={`translate(${node.x}, ${node.y})`} onClick={handleClick} style={{ cursor: 'pointer' }}>
+        <g
+            transform={`translate(${node.x}, ${node.y})`}
+            onClick={handleClick}
+            onContextMenu={handleContextMenu}
+            style={{ cursor: 'pointer' }}
+        >
             <rect
                 width={node.width}
                 height={node.height}
@@ -234,6 +332,23 @@ const CustomNode = ({ node, onNodeClick }) => {
                     {data.symbol}
                 </text>
             )}
+
+            {/* Watchlist Star Indicator */}
+            {node.width > 40 && node.height > 40 && isWatchlisted && (
+                <g transform={`translate(${node.width - 18}, 6)`}>
+                    <circle r="10" fill="rgba(15, 23, 42, 0.8)" />
+                    <text
+                        x="0"
+                        y="0"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fontSize="12"
+                        fill="#fbbf24"
+                    >
+                        ✓
+                    </text>
+                </g>
+            )}
         </g>
     );
 };
@@ -242,8 +357,10 @@ const CustomNode = ({ node, onNodeClick }) => {
  * HeatmapContainer - Main visualization component with click-to-correlate
  */
 export default function HeatmapContainer({ paneId, title }) {
+    const navigate = useNavigate();
     const globalMarketData = useMarketStore(state => state.marketData);
     const globalIsConnected = useMarketStore(state => state.isConnected);
+    const { currentUser } = useAuth();
 
     const [marketData, setMarketData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -255,6 +372,13 @@ export default function HeatmapContainer({ paneId, title }) {
     const [correlations, setCorrelations] = useState([]);
     const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
     const [isLoadingCorrelations, setIsLoadingCorrelations] = useState(false);
+
+    // Context menu state
+    const [contextMenuAsset, setContextMenuAsset] = useState(null);
+    const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
+
+    // Watchlist state
+    const [watchlist, setWatchlist] = useState([]);
 
     const pane = useMarketStore((state) =>
         paneId === 'left' ? state.leftPane : state.rightPane
@@ -304,6 +428,68 @@ export default function HeatmapContainer({ paneId, title }) {
         }
     }, [globalMarketData, selectedMarket]);
 
+    // Load watchlist with subscription
+    useEffect(() => {
+        let unsubscribe = () => { };
+
+        if (currentUser) {
+            unsubscribe = watchlistService.subscribeToWatchlist(currentUser.uid, (list) => {
+                setWatchlist(list);
+            });
+        } else {
+            const stored = JSON.parse(localStorage.getItem('watchlist') || '[]');
+            setWatchlist(stored);
+        }
+
+        return () => unsubscribe();
+    }, [currentUser]);
+
+    // Watchlist utility functions
+    const isInWatchlist = useCallback((symbol) => {
+        return watchlist.some(w => w.symbol === symbol);
+    }, [watchlist]);
+
+    const toggleWatchlist = useCallback(async (asset) => {
+        const inWatchlist = isInWatchlist(asset.symbol);
+
+        if (currentUser) {
+            try {
+                if (inWatchlist) {
+                    await watchlistService.removeFromWatchlist(currentUser.uid, asset.symbol);
+                } else {
+                    await watchlistService.addToWatchlist(currentUser.uid, {
+                        symbol: asset.symbol,
+                        market: selectedMarket,
+                        name: asset.name
+                    });
+                }
+            } catch (error) {
+                console.error("Watchlist operation failed:", error);
+            }
+        } else {
+            // Fallback for guests
+            let updated;
+            if (inWatchlist) {
+                updated = watchlist.filter(w => w.symbol !== asset.symbol);
+            } else {
+                updated = [...watchlist, {
+                    symbol: asset.symbol,
+                    market: selectedMarket,
+                    name: asset.name
+                }];
+            }
+            localStorage.setItem('watchlist', JSON.stringify(updated));
+            setWatchlist(updated);
+        }
+    }, [watchlist, selectedMarket, isInWatchlist, currentUser]);
+
+    // Handle context menu
+    const handleNodeContextMenu = useCallback((assetData, position) => {
+        setContextMenuAsset(assetData);
+        setContextMenuPosition(position);
+        setSelectedAsset(null); // Close correlation popup if open
+    }, []);
+
     // Handle node click - fetch correlations
     const handleNodeClick = useCallback(async (assetData, position) => {
         // Toggle if same asset clicked
@@ -328,6 +514,13 @@ export default function HeatmapContainer({ paneId, title }) {
             setIsLoadingCorrelations(false);
         }
     }, [selectedAsset, marketData]);
+
+    // Handle view asset details from context menu
+    const handleViewDetails = useCallback(() => {
+        if (contextMenuAsset) {
+            navigate(`/asset/${selectedMarket}/${contextMenuAsset.symbol}`);
+        }
+    }, [contextMenuAsset, selectedMarket, navigate]);
 
     // Transform data for Nivo Treemap
     const treemapData = useMemo(() => {
@@ -355,15 +548,20 @@ export default function HeatmapContainer({ paneId, title }) {
     };
 
     const marketLabels = {
-        crypto: '🚀 Cryptocurrency',
-        stocks: '📊 US Stocks',
-        commodities: '⚡ Commodities',
+        crypto: 'Cryptocurrency',
+        stocks: 'US Stocks',
+        commodities: 'Commodities',
     };
 
     // Custom node with click handler
     const NodeWithClick = useCallback((props) => (
-        <CustomNode {...props} onNodeClick={handleNodeClick} />
-    ), [handleNodeClick]);
+        <CustomNode
+            {...props}
+            onNodeClick={handleNodeClick}
+            onNodeContextMenu={handleNodeContextMenu}
+            isWatchlisted={props.node.data && isInWatchlist(props.node.data.symbol)}
+        />
+    ), [handleNodeClick, handleNodeContextMenu, isInWatchlist]);
 
     return (
         <div className="flex flex-col h-full bg-dark-surface rounded-xl border border-dark-border overflow-hidden relative">
@@ -440,6 +638,18 @@ export default function HeatmapContainer({ paneId, title }) {
                                 correlations={correlations}
                                 onClose={() => setSelectedAsset(null)}
                                 position={popupPosition}
+                            />
+                        )}
+
+                        {/* Context Menu */}
+                        {contextMenuAsset && (
+                            <ContextMenu
+                                asset={contextMenuAsset}
+                                position={contextMenuPosition}
+                                isWatchlisted={isInWatchlist(contextMenuAsset.symbol)}
+                                onClose={() => setContextMenuAsset(null)}
+                                onToggleWatchlist={() => toggleWatchlist(contextMenuAsset)}
+                                onViewDetails={handleViewDetails}
                             />
                         )}
                     </>

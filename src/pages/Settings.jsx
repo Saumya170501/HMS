@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import useThemeStore from '../hooks/useThemeStore';
+import {
+    Link, Zap, Download, Palette, RefreshCw, Bell, Key, Settings as SettingsIcon,
+    Moon, Sun, Monitor, Check
+} from 'lucide-react';
 
 
 
@@ -87,11 +91,6 @@ export default function Settings() {
     const { theme, setTheme } = useThemeStore();
     const [saved, setSaved] = useState(false);
 
-    // Sync theme changes to global store immediately
-    useEffect(() => {
-        setTheme(settings.theme);
-    }, [settings.theme, setTheme]);
-
     // Save visual feedback wrapper
     const handleSave = () => {
         // Zustand persists automatically, just show feedback
@@ -115,7 +114,7 @@ export default function Settings() {
                 <div className="flex items-center gap-3">
                     {saved && (
                         <span className="text-green-500 text-sm flex items-center gap-1">
-                            <span>✓</span> Saved!
+                            <Check className="w-4 h-4" /> Saved!
                         </span>
                     )}
                     <button
@@ -135,7 +134,7 @@ export default function Settings() {
 
             {/* Correlation Preferences */}
             <SettingSection
-                title="🔗 Correlation Preferences"
+                title={<div className="flex items-center gap-2"><Link className="w-4 h-4" /> Correlation Preferences</div>}
                 description="Configure how correlation analysis works"
             >
                 <Select
@@ -174,7 +173,7 @@ export default function Settings() {
 
             {/* Price Alert Configuration */}
             <SettingSection
-                title="⚡ Price Alert Configuration"
+                title={<div className="flex items-center gap-2"><Zap className="w-4 h-4" /> Price Alert Configuration</div>}
                 description="Customize how price alerts behave"
             >
                 <RadioGroup
@@ -211,7 +210,7 @@ export default function Settings() {
 
             {/* Export Preferences */}
             <SettingSection
-                title="📤 Export Preferences"
+                title={<div className="flex items-center gap-2"><Download className="w-4 h-4" /> Export Preferences</div>}
                 description="Configure default settings for data exports"
             >
                 <RadioGroup
@@ -234,17 +233,20 @@ export default function Settings() {
 
             {/* Display Preferences */}
             <SettingSection
-                title="🎨 Display Preferences"
+                title={<div className="flex items-center gap-2"><Palette className="w-4 h-4" /> Display Preferences</div>}
                 description="Customize the visual appearance"
             >
                 <RadioGroup
                     label="Theme"
-                    value={settings.theme}
-                    onChange={(val) => updateSetting('theme', val)}
+                    value={theme}
+                    onChange={(val) => {
+                        setTheme(val);
+                        updateSetting('theme', val);
+                    }}
                     options={[
-                        { value: 'dark', label: '🌙 Dark' },
-                        { value: 'light', label: '☀️ Light' },
-                        { value: 'auto', label: '🖥️ System' }
+                        { value: 'dark', label: <div className="flex items-center gap-2"><Moon className="w-3 h-3" /> Dark</div> },
+                        { value: 'light', label: <div className="flex items-center gap-2"><Sun className="w-3 h-3" /> Light</div> },
+                        { value: 'auto', label: <div className="flex items-center gap-2"><Monitor className="w-3 h-3" /> System</div> }
                     ]}
                 />
 
@@ -258,7 +260,7 @@ export default function Settings() {
 
             {/* Data Refresh */}
             <SettingSection
-                title="🔄 Data Refresh"
+                title={<div className="flex items-center gap-2"><RefreshCw className="w-4 h-4" /> Data Refresh</div>}
                 description="Configure how often data updates"
             >
                 <Select
@@ -277,7 +279,7 @@ export default function Settings() {
 
             {/* Notifications */}
             <SettingSection
-                title="🔔 Notifications"
+                title={<div className="flex items-center gap-2"><Bell className="w-4 h-4" /> Notifications</div>}
                 description="Manage alert preferences"
             >
                 <Toggle
@@ -304,7 +306,7 @@ export default function Settings() {
 
             {/* API Configuration */}
             <SettingSection
-                title="🔑 API Configuration"
+                title={<div className="flex items-center gap-2"><Key className="w-4 h-4" /> API Configuration</div>}
                 description="Configure external data sources"
             >
                 <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
@@ -330,7 +332,7 @@ export default function Settings() {
 
             {/* Current Settings Debug */}
             <SettingSection
-                title="⚙️ Current Configuration"
+                title={<div className="flex items-center gap-2"><SettingsIcon className="w-4 h-4" /> Current Configuration</div>}
                 description="Debug view of saved settings"
             >
                 <pre className="bg-slate-100 dark:bg-slate-900 rounded-lg p-4 text-xs text-secondary font-mono overflow-x-auto border border-slate-200 dark:border-slate-800">

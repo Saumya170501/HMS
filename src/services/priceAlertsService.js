@@ -1,12 +1,20 @@
+/**
+ * Price Alerts Service
+ * Uses Firestore for authenticated users, localStorage for guests.
+ */
 
-// Check for price alerts based on new market data
+import * as userDataService from './userDataService';
+
+const STORAGE_KEY = 'marketvue_price_alerts';
+
+// ─── Check for triggered alerts ──────────────────────────────
+
 export const checkPriceAlerts = (marketData, activeAlerts) => {
     const notifications = [];
     let hasUpdates = false;
 
     if (!activeAlerts || activeAlerts.length === 0) return { notifications, updatedAlerts: null };
 
-    // Flatten market data for easier lookup
     const allAssets = [
         ...marketData.stocks,
         ...marketData.crypto,
@@ -20,7 +28,6 @@ export const checkPriceAlerts = (marketData, activeAlerts) => {
             let triggered = false;
             let message = '';
 
-            // Skip if already triggered
             if (alert.triggered) return alert;
 
             switch (alert.type) {
@@ -62,9 +69,9 @@ export const checkPriceAlerts = (marketData, activeAlerts) => {
     return { notifications, updatedAlerts: hasUpdates ? updatedAlerts : null };
 };
 
-// Add a new alert
-export const addPriceAlert = (alert) => {
-    const alerts = getPriceAlerts();
+// ─── CRUD operations (Firestore or localStorage) ────────────
+
+export const addPriceAlert = async (alert, userId) => {
     const newAlert = {
         id: Date.now(),
         created_at: Date.now(),
@@ -72,27 +79,52 @@ export const addPriceAlert = (alert) => {
         ...alert
     };
 
+    if (userId) {
+        return await userDataService.addPriceAlert(userId, alert);
+    }
+
+    const alerts = getPriceAlertsLocal();
     alerts.push(newAlert);
-    localStorage.setItem('marketvue_price_alerts', JSON.stringify(alerts));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(alerts));
     return newAlert;
 };
 
-// Get all alerts
-export const getPriceAlerts = () => {
-    const stored = localStorage.getItem('marketvue_price_alerts');
+export const getPriceAlerts = async (userId) => {
+    if (userId) {
+        return await userDataService.getPriceAlerts(userId);
+    }
+    return getPriceAlertsLocal();
+};
+
+// Synchronous local-only version (for useWebSocket fallback)
+export const getPriceAlertsLocal = () => {
+    const stored = localStorage.getItem(STORAGE_KEY);
     return stored ? JSON.parse(stored) : [];
 };
 
-// Delete an alert
-export const deletePriceAlert = (id) => {
-    const alerts = getPriceAlerts();
+export const deletePriceAlert = async (id, userId) => {
+    if (userId) {
+        return await userDataService.deletePriceAlert(userId, id);
+    }
+    const alerts = getPriceAlertsLocal();
     const filtered = alerts.filter(a => a.id !== id);
-    localStorage.setItem('marketvue_price_alerts', JSON.stringify(filtered));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
     return filtered;
 };
 
-// Delete all alerts
-export const deleteAllPriceAlerts = () => {
-    localStorage.setItem('marketvue_price_alerts', JSON.stringify([]));
+export const deleteAllPriceAlerts = async (userId) => {
+    if (userId) {
+        return await userDataService.deleteAllPriceAlerts(userId);
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
     return [];
+};
+
+// Save alerts (used by WebSocket when alerts trigger)
+export const savePriceAlerts = async (alerts, userId) => {
+    if (userId) {
+        await userDataService.savePriceAlerts(userId, alerts);
+    } else {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(alerts));
+    }
 };

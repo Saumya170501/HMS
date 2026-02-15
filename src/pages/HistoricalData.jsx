@@ -1,28 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
     ResponsiveContainer, Area, AreaChart
 } from 'recharts';
+import {
+    TrendingUp, TrendingDown, Coins, Pickaxe, LayoutGrid,
+    AlertTriangle, RefreshCw
+} from 'lucide-react';
 import { getHistoricalPrices } from '../services/historicalPriceService';
 import apiManager from '../services/apiManager';
+import { useAuth } from '../context/AuthContext';
+import * as userDataService from '../services/userDataService';
 
 // Asset Type Selector
 const AssetTypeSelector = ({ value, onChange }) => (
     <div className="flex gap-2">
         {[
-            { value: 'crypto', label: '₿ Crypto', icon: '🚀' },
-            { value: 'stock', label: '📊 Stocks', icon: '📈' },
-            { value: 'commodity', label: '🛢️ Commodities', icon: '⚡' }
+            { value: 'crypto', label: 'Crypto', icon: Coins, color: 'text-purple-500' },
+            { value: 'stock', label: 'Stocks', icon: TrendingUp, color: 'text-blue-500' },
+            { value: 'commodity', label: 'Commodities', icon: Pickaxe, color: 'text-amber-500' }
         ].map((type) => (
             <button
                 key={type.value}
                 onClick={() => onChange(type.value)}
-                className={`px-4 py-2.5 rounded-lg font-medium transition-all ${value === type.value
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${value === type.value
                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
                     : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
                     }`}
             >
-                {type.label}
+                <type.icon className={`w-4 h-4 ${value === type.value ? 'text-white' : type.color}`} />
+                <span>{type.label}</span>
             </button>
         ))}
     </div>
@@ -53,6 +60,9 @@ const TimeframeSelector = ({ value, onChange }) => (
 );
 
 export default function HistoricalData() {
+    const { currentUser } = useAuth();
+    const userId = currentUser?.uid;
+
     // Initialize state from localStorage if available
     const [assetType, setAssetType] = useState(() => {
         return localStorage.getItem('hms_historical_assetType') || 'crypto';
@@ -69,17 +79,43 @@ export default function HistoricalData() {
     const [error, setError] = useState(null);
     const [availableAssets, setAvailableAssets] = useState([]);
 
-    // Save preferences to localStorage whenever they change
+    // Load preferences from Firestore when user logs in
+    useEffect(() => {
+        if (userId) {
+            userDataService.getPreferences(userId).then(prefs => {
+                if (prefs?.historicalAssetType) setAssetType(prefs.historicalAssetType);
+                if (prefs?.historicalSymbol) setSelectedSymbol(prefs.historicalSymbol);
+                if (prefs?.historicalTimeframe) setTimeframe(prefs.historicalTimeframe);
+            });
+        }
+    }, [userId]);
+
+    // Save preferences whenever they change
     useEffect(() => {
         localStorage.setItem('hms_historical_assetType', assetType);
+        if (userId) {
+            userDataService.getPreferences(userId).then(prefs => {
+                userDataService.savePreferences(userId, { ...prefs, historicalAssetType: assetType });
+            });
+        }
     }, [assetType]);
 
     useEffect(() => {
         localStorage.setItem('hms_historical_symbol', selectedSymbol);
+        if (userId) {
+            userDataService.getPreferences(userId).then(prefs => {
+                userDataService.savePreferences(userId, { ...prefs, historicalSymbol: selectedSymbol });
+            });
+        }
     }, [selectedSymbol]);
 
     useEffect(() => {
         localStorage.setItem('hms_historical_timeframe', timeframe.toString());
+        if (userId) {
+            userDataService.getPreferences(userId).then(prefs => {
+                userDataService.savePreferences(userId, { ...prefs, historicalTimeframe: timeframe });
+            });
+        }
     }, [timeframe]);
 
     // Load available assets based on type
@@ -88,7 +124,7 @@ export default function HistoricalData() {
             try {
                 const marketMap = { crypto: 'crypto', stock: 'stocks', commodity: 'commodities' };
                 const data = await apiManager.getMarketData(marketMap[assetType]);
-                console.log(`📊 Loaded ${data.length} ${assetType} assets:`, data.slice(0, 3));
+                console.log(`Loaded ${data.length} ${assetType} assets:`, data.slice(0, 3));
                 setAvailableAssets(data);
 
                 // Select first asset if current selection isn't in new list
@@ -226,8 +262,9 @@ export default function HistoricalData() {
                         Price History ({timeframe} days)
                     </h3>
                     {stats && (
-                        <div className={`text-sm font-mono ${stats.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                            {stats.change >= 0 ? '↑' : '↓'} {Math.abs(stats.change).toFixed(2)}%
+                        <div className={`flex items-center gap-1 text-sm font-mono ${stats.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                            {stats.change >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                            <span>{Math.abs(stats.change).toFixed(2)}%</span>
                         </div>
                     )}
                 </div>
@@ -241,8 +278,9 @@ export default function HistoricalData() {
                             </svg>
                         </div>
                     ) : error ? (
-                        <div className="flex items-center justify-center h-full text-red-400">
-                            <span>⚠️ {error}</span>
+                        <div className="flex items-center justify-center gap-2 h-full text-red-400">
+                            <AlertTriangle className="w-5 h-5" />
+                            <span>{error}</span>
                         </div>
                     ) : displayData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">

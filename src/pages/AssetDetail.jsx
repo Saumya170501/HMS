@@ -4,10 +4,15 @@ import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
     ResponsiveContainer, AreaChart, Area
 } from 'recharts';
+import { TrendingUp, TrendingDown, Coins, Pickaxe, LayoutGrid, HelpCircle, Star, Scale } from 'lucide-react';
 import apiManager from '../services/apiManager';
+import { useAuth } from '../context/AuthContext';
+import { watchlistService } from '../services/watchlistService';
 
 export default function AssetDetail() {
     const { market, symbol } = useParams();
+    const { currentUser } = useAuth();
+    const userId = currentUser?.uid;
     const [asset, setAsset] = useState(null);
     const [chartData, setChartData] = useState([]);
     const [timeframe, setTimeframe] = useState('1M');
@@ -23,8 +28,13 @@ export default function AssetDetail() {
                 setAsset(found);
 
                 // Check watchlist
-                const watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
-                setIsWatchlisted(watchlist.some(w => w.symbol === symbol));
+                if (userId) {
+                    const watchlist = await watchlistService.getWatchlist(userId);
+                    setIsWatchlisted(watchlist.some(w => w.symbol === symbol));
+                } else {
+                    const watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
+                    setIsWatchlisted(watchlist.some(w => w.symbol === symbol));
+                }
 
                 // Generate chart data
                 generateChartData(found, timeframe);
@@ -35,7 +45,7 @@ export default function AssetDetail() {
             }
         }
         loadAsset();
-    }, [market, symbol, timeframe]);
+    }, [market, symbol, timeframe, currentUser]);
 
     const generateChartData = (assetData, tf) => {
         if (!assetData) return;
@@ -69,26 +79,38 @@ export default function AssetDetail() {
         setChartData(data);
     };
 
-    const toggleWatchlist = () => {
-        const watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
-
-        if (isWatchlisted) {
-            const updated = watchlist.filter(w => w.symbol !== symbol);
-            localStorage.setItem('watchlist', JSON.stringify(updated));
-            setIsWatchlisted(false);
+    const toggleWatchlist = async () => {
+        if (userId) {
+            try {
+                if (isWatchlisted) {
+                    await watchlistService.removeFromWatchlist(userId, symbol);
+                } else {
+                    await watchlistService.addToWatchlist(userId, { symbol, market, name: asset?.name });
+                }
+                setIsWatchlisted(!isWatchlisted);
+            } catch (error) {
+                console.error('Watchlist operation failed:', error);
+            }
         } else {
-            watchlist.push({ symbol, market, name: asset?.name });
-            localStorage.setItem('watchlist', JSON.stringify(watchlist));
-            setIsWatchlisted(true);
+            const watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
+            if (isWatchlisted) {
+                const updated = watchlist.filter(w => w.symbol !== symbol);
+                localStorage.setItem('watchlist', JSON.stringify(updated));
+                setIsWatchlisted(false);
+            } else {
+                watchlist.push({ symbol, market, name: asset?.name });
+                localStorage.setItem('watchlist', JSON.stringify(watchlist));
+                setIsWatchlisted(true);
+            }
         }
     };
 
     const getMarketIcon = () => {
         switch (market) {
-            case 'stocks': return '📈';
-            case 'crypto': return '₿';
-            case 'commodities': return '🛢️';
-            default: return '📊';
+            case 'stocks': return <TrendingUp className="w-8 h-8 text-white" />;
+            case 'crypto': return <Coins className="w-8 h-8 text-white" />;
+            case 'commodities': return <Pickaxe className="w-8 h-8 text-white" />;
+            default: return <LayoutGrid className="w-8 h-8 text-white" />;
         }
     };
 
@@ -110,7 +132,7 @@ export default function AssetDetail() {
         return (
             <div className="p-6">
                 <div className="bg-dark-surface border border-dark-border rounded-xl p-12 text-center">
-                    <span className="text-4xl mb-4 block">❓</span>
+                    <HelpCircle className="w-12 h-12 text-slate-400 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-slate-300 mb-2">Asset Not Found</h3>
                     <p className="text-slate-500 text-sm mb-4">
                         Could not find {symbol} in {market}
@@ -150,14 +172,14 @@ export default function AssetDetail() {
                             : 'bg-slate-100 dark:bg-slate-800 text-secondary hover:text-primary hover:bg-slate-200 dark:hover:bg-slate-700'
                             }`}
                     >
-                        <span>{isWatchlisted ? '⭐' : '☆'}</span>
+                        <Star className={`w-4 h-4 ${isWatchlisted ? 'fill-current' : ''}`} />
                         <span>{isWatchlisted ? 'Watchlisted' : 'Add to Watchlist'}</span>
                     </button>
                     <Link
                         to="/compare"
                         className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-secondary hover:text-primary hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg flex items-center gap-2 transition-colors"
                     >
-                        <span>⚖️</span>
+                        <Scale className="w-4 h-4" />
                         <span>Compare</span>
                     </Link>
                 </div>
@@ -171,7 +193,7 @@ export default function AssetDetail() {
                         ${asset.price?.toLocaleString()}
                     </div>
                     <div className={`flex items-center gap-2 mt-2 ${asset.change >= 0 ? 'text-green-600 dark:text-gain-bright' : 'text-red-600 dark:text-loss-bright'}`}>
-                        <span className="text-lg">{asset.change >= 0 ? '↑' : '↓'}</span>
+                        {asset.change >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                         <span className="font-mono">{asset.change >= 0 ? '+' : ''}{asset.change?.toFixed(2)}%</span>
                     </div>
                 </div>

@@ -1,15 +1,21 @@
 import alphaVantageService from './alphaVantageService';
+import finnhubService from './finnhubService';
+import coinGeckoService from './coinGeckoService';
 import ndaxService from './ndaxService';
 import commoditiesService from './commoditiesService';
 import useMarketStore from '../store';
+import { getCoinGeckoId } from '../config/cryptoMapping';
 
 /**
  * Unified API Manager  
  * Handles all market data requests with caching and fallbacks
+ * NOW WITH FINNHUB (stocks) AND COINGECKO (crypto) INTEGRATION!
  */
 class ApiManager {
     constructor() {
         this.alphaVantage = alphaVantageService;
+        this.finnhub = finnhubService;
+        this.coinGecko = coinGeckoService;
         this.ndax = ndaxService;
         this.commodities = commoditiesService;
         this.subscribers = new Map();
@@ -27,7 +33,7 @@ class ApiManager {
 
         if (storeData[marketType] && storeData[marketType].length > 0) {
             // Return real-time data from WebSocket
-            console.log(`✅ Using WebSocket data for ${marketType}:`, {
+            console.log(`Using WebSocket data for ${marketType}:`, {
                 count: storeData[marketType].length,
                 sample: storeData[marketType][0]
             });
@@ -35,7 +41,7 @@ class ApiManager {
         }
 
         // Fallback to legacy methods if WebSocket hasn't connected yet
-        console.warn(`⚠️ WebSocket data not available for ${marketType}, using fallback. Store contents:`, storeData);
+        console.warn(`WebSocket data not available for ${marketType}, using fallback. Store contents:`, storeData);
         switch (marketType) {
             case 'stocks':
                 return this.getStocksData();
@@ -51,31 +57,76 @@ class ApiManager {
 
     /**
      * Get stocks data for heatmap
-     * Note: Alpha Vantage free tier has rate limits (5 calls/min)
-     * We use mock data as the primary source for heatmap visualization
+     * Uses Finnhub (60/min) → Alpha Vantage (5/min) → Mock Data
      */
     async getStocksData() {
-        // Use mock data directly to avoid rate limiting issues
-        // This provides consistent 12-stock display for the heatmap
-        const mockData = this.getMockStocksData();
+        const stockSymbols = [
+            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META',
+            'TSLA', 'BRK.B', 'JPM', 'V', 'WMT', 'MA'
+        ];
 
-        // Try to fetch at least one real quote to validate API connection
+        // Try Finnhub first (best rate limits)
         try {
+            console.log('Fetching stocks from Finnhub...');
+            const finnhubData = await this.finnhub.getBatchQuotes(stockSymbols);
+
+            if (finnhubData && finnhubData.length > 0) {
+                console.log(`Got ${finnhubData.length} stocks from Finnhub`);
+                return finnhubData.map(quote => ({
+                    symbol: quote.symbol,
+                    name: this.getStockName(quote.symbol),
+                    price: quote.price,
+                    change: quote.changePercent,
+                    volume: quote.previousClose * 1000000, // Estimate
+                    marketCap: this.estimateMarketCap(quote.symbol),
+                    market: 'stocks'
+                }));
+            }
+        } catch (error) {
+            console.warn('Finnhub failed, trying Alpha Vantage:', error.message);
+        }
+
+        // Fallback to Alpha Vantage
+        try {
+            const mockData = this.getMockStocksData();
             const quote = await this.alphaVantage.getQuote('AAPL');
             if (quote && quote.price) {
-                // Update AAPL in mock data with real price
                 const appleIndex = mockData.findIndex(s => s.symbol === 'AAPL');
                 if (appleIndex !== -1) {
                     mockData[appleIndex].price = quote.price;
                     mockData[appleIndex].change = quote.changePercent || mockData[appleIndex].change;
                 }
             }
+            console.log('Using Alpha Vantage + mock data');
+            return mockData;
         } catch (error) {
-            // API might be rate limited, use mock data
-            console.log('Using mock stock data (API rate limited)');
+            console.warn('Alpha Vantage failed, using mock data:', error.message);
         }
 
-        return mockData;
+        // Final fallback to mock data
+        console.log('Using mock stock data only');
+        return this.getMockStocksData();
+    }
+
+    /**
+     * Get stock name from symbol
+     */
+    getStockName(symbol) {
+        const names = {
+            'AAPL': 'Apple Inc.',
+            'MSFT': 'Microsoft',
+            'GOOGL': 'Alphabet',
+            'AMZN': 'Amazon',
+            'NVDA': 'NVIDIA',
+            'META': 'Meta Platforms',
+            'TSLA': 'Tesla',
+            'BRK.B': 'Berkshire Hathaway',
+            'JPM': 'JPMorgan Chase',
+            'V': 'Visa Inc.',
+            'WMT': 'Walmart',
+            'MA': 'Mastercard',
+        };
+        return names[symbol] || symbol;
     }
 
     /**
@@ -130,9 +181,37 @@ class ApiManager {
 
     /**
      * Get crypto data for heatmap
+     * Uses CoinGecko (500+ coins, 30/min) → NDAX → Mock Data
      */
     async getCryptoData() {
-        return this.ndax.getCryptoForHeatmap();
+        // Try CoinGecko first (best crypto coverage)
+        try {
+            console.log('Fetching crypto from CoinGecko...');
+            const coinGeckoData = await this.coinGecko.getMarketData('usd', 50);
+
+            if (coinGeckoData && coinGeckoData.length > 0) {
+                console.log(`Got ${coinGeckoData.length} coins from CoinGecko`);
+                return coinGeckoData.map(coin => ({
+                    symbol: coin.symbol,
+                    name: coin.name,
+                    price: coin.price,
+                    change: coin.change,
+                    volume: coin.volume,
+                    marketCap: coin.marketCap,
+                    market: 'crypto'
+                }));
+            }
+        } catch (error) {
+            console.warn('CoinGecko failed, trying NDAX:', error.message);
+        }
+
+        // Fallback to NDAX data
+        try {
+            return await this.ndax.getCryptoForHeatmap();
+        } catch (error) {
+            console.warn('NDAX failed, using mock data:', error.message);
+            return this.getMockCryptoData();
+        }
     }
 
     /**
@@ -149,21 +228,35 @@ class ApiManager {
     async search(query) {
         const results = [];
 
-        // Search stocks
+        // Search stocks (try Finnhub first)
         try {
-            const stockResults = await this.alphaVantage.search(query);
-            results.push(...stockResults.map(r => ({ ...r, market: 'stocks' })));
+            const finnhubResults = await this.finnhub.searchSymbols(query);
+            if (finnhubResults && finnhubResults.length > 0) {
+                results.push(...finnhubResults.map(r => ({ ...r, market: 'stocks' })));
+            } else {
+                // Fallback to Alpha Vantage
+                const stockResults = await this.alphaVantage.search(query);
+                results.push(...stockResults.map(r => ({ ...r, market: 'stocks' })));
+            }
         } catch (error) {
             console.error('Stock search failed:', error);
         }
 
-        // Add crypto matches from mock data
-        const cryptoData = await this.getCryptoData();
-        const cryptoMatches = cryptoData.filter(c =>
-            c.symbol.toLowerCase().includes(query.toLowerCase()) ||
-            c.name.toLowerCase().includes(query.toLowerCase())
-        );
-        results.push(...cryptoMatches.map(r => ({ ...r, market: 'crypto' })));
+        // Search crypto with CoinGecko
+        try {
+            const coinResults = await this.coinGecko.searchCoins(query);
+            if (coinResults && coinResults.length > 0) {
+                results.push(...coinResults.map(r => ({ ...r, market: 'crypto' })));
+            }
+        } catch (error) {
+            // Fallback to local crypto data search
+            const cryptoData = await this.getCryptoData();
+            const cryptoMatches = cryptoData.filter(c =>
+                c.symbol.toLowerCase().includes(query.toLowerCase()) ||
+                c.name.toLowerCase().includes(query.toLowerCase())
+            );
+            results.push(...cryptoMatches.map(r => ({ ...r, market: 'crypto' })));
+        }
 
         // Add commodity matches
         const commodityData = await this.getCommoditiesData();

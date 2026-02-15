@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Heatmap from './pages/Heatmap';
 import Compare from './pages/Compare';
 import Watchlist from './pages/Watchlist';
+import Portfolio from './pages/Portfolio';
 import AssetDetail from './pages/AssetDetail';
 import Settings from './pages/Settings';
 import HistoricalData from './pages/HistoricalData';
@@ -92,6 +93,7 @@ export default function App() {
                                 <Route path="/compare" element={<Compare />} />
                                 <Route path="/historical" element={<HistoricalData />} />
                                 <Route path="/watchlist" element={<Watchlist />} />
+                                <Route path="/portfolio" element={<Portfolio />} />
                                 <Route path="/asset/:market/:symbol" element={<AssetDetail />} />
                                 <Route path="/alerts" element={<PriceAlerts />} />
                                 <Route path="/analytics" element={<Analytics />} />

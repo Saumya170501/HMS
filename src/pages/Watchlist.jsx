@@ -1,17 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { TrendingUp, Coins, Pickaxe, LayoutGrid, Star, Search, BarChart3 } from 'lucide-react';
 import apiManager from '../services/apiManager';
+import { useAuth } from '../context/AuthContext';
+import { watchlistService } from '../services/watchlistService';
+import AssetIcon from '../components/AssetIcon';
 
 export default function Watchlist() {
+    const { currentUser } = useAuth();
     const [watchlist, setWatchlist] = useState([]);
     const [watchlistData, setWatchlistData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const stored = JSON.parse(localStorage.getItem('watchlist') || '[]');
-        setWatchlist(stored);
-        loadWatchlistData(stored);
-    }, []);
+        let unsubscribe = () => { };
+
+        const initializeWatchlist = async () => {
+            if (currentUser) {
+                // Real-time subscription for logged-in users
+                unsubscribe = watchlistService.subscribeToWatchlist(currentUser.uid, (list) => {
+                    setWatchlist(list);
+                    loadWatchlistData(list);
+                });
+            } else {
+                // Fallback to localStorage for guests
+                const stored = JSON.parse(localStorage.getItem('watchlist') || '[]');
+                setWatchlist(stored);
+                loadWatchlistData(stored);
+            }
+        };
+
+        initializeWatchlist();
+        return () => unsubscribe();
+    }, [currentUser]);
 
     const loadWatchlistData = async (list) => {
         setIsLoading(true);
@@ -37,19 +58,28 @@ export default function Watchlist() {
         }
     };
 
-    const removeFromWatchlist = (symbol) => {
-        const updated = watchlist.filter(w => w.symbol !== symbol);
-        localStorage.setItem('watchlist', JSON.stringify(updated));
-        setWatchlist(updated);
-        setWatchlistData(watchlistData.filter(w => w.symbol !== symbol));
+    const removeFromWatchlist = async (symbol) => {
+        if (currentUser) {
+            try {
+                await watchlistService.removeFromWatchlist(currentUser.uid, symbol);
+                // State updates via subscription
+            } catch (error) {
+                console.error("Failed to remove from watchlist:", error);
+            }
+        } else {
+            const updated = watchlist.filter(w => w.symbol !== symbol);
+            localStorage.setItem('watchlist', JSON.stringify(updated));
+            setWatchlist(updated);
+            setWatchlistData(watchlistData.filter(w => w.symbol !== symbol));
+        }
     };
 
     const getMarketIcon = (market) => {
         switch (market) {
-            case 'stocks': return '📈';
-            case 'crypto': return '₿';
-            case 'commodities': return '🛢️';
-            default: return '📊';
+            case 'stocks': return <TrendingUp className="w-5 h-5 text-blue-500" />;
+            case 'crypto': return <Coins className="w-5 h-5 text-purple-500" />;
+            case 'commodities': return <Pickaxe className="w-5 h-5 text-amber-500" />;
+            default: return <LayoutGrid className="w-5 h-5 text-slate-500" />;
         }
     };
 
@@ -95,7 +125,12 @@ export default function Watchlist() {
                                 <tr key={asset.symbol} className="border-b border-border last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                                     <td className="px-4 py-4">
                                         <Link to={`/asset/${asset.market}/${asset.symbol}`} className="flex items-center gap-3 group">
-                                            <span className="text-lg group-hover:scale-110 transition-transform">{getMarketIcon(asset.market)}</span>
+                                            <AssetIcon
+                                                symbol={asset.symbol}
+                                                market={asset.market}
+                                                size={32}
+                                                className="group-hover:scale-110 transition-transform shadow-sm"
+                                            />
                                             <div>
                                                 <div className="font-mono font-bold text-primary group-hover:text-blue-500 transition-colors">{asset.symbol}</div>
                                                 <div className="text-xs text-secondary">{asset.name}</div>
@@ -146,7 +181,7 @@ export default function Watchlist() {
                 </div>
             ) : (
                 <div className="bg-surface border border-border rounded-xl p-12 text-center shadow-sm">
-                    <span className="text-4xl mb-4 block">⭐</span>
+                    <Star className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-primary mb-2">Your Watchlist is Empty</h3>
                     <p className="text-secondary text-sm mb-4">
                         Add assets to your watchlist to track them here
@@ -155,7 +190,7 @@ export default function Watchlist() {
                         to="/"
                         className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg shadow-blue-500/20"
                     >
-                        <span>📊</span>
+                        <BarChart3 className="w-4 h-4" />
                         <span>Browse Assets</span>
                     </Link>
                 </div>

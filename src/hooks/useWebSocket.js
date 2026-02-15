@@ -1,7 +1,8 @@
 import { useEffect, useRef, useCallback } from 'react';
 import useMarketStore from '../store';
-import { checkPriceAlerts } from '../services/priceAlertsService';
+import { checkPriceAlerts, getPriceAlertsLocal, savePriceAlerts } from '../services/priceAlertsService';
 import useSettingsStore from './useSettingsStore';
+import { getAuth } from 'firebase/auth';
 
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8080';
 const BASE_RECONNECT_DELAY = 3000;
@@ -20,12 +21,9 @@ export const useWebSocket = () => {
     // Get latest alerts ref to avoid dependency cycles in useEffect
     const alertsRef = useRef([]);
 
-    // Sync alerts from local storage/store
+    // Sync alerts from local storage on mount
     useEffect(() => {
-        const storedAlerts = localStorage.getItem('marketvue_price_alerts');
-        if (storedAlerts) {
-            alertsRef.current = JSON.parse(storedAlerts);
-        }
+        alertsRef.current = getPriceAlertsLocal();
     }, []);
 
     const connect = useCallback(() => {
@@ -68,10 +66,12 @@ export const useWebSocket = () => {
                             addNotification(notification);
                         });
 
-                        // Update local alerts state if any triggered
+                        // Update alerts state if any triggered
                         if (updatedAlerts) {
                             alertsRef.current = updatedAlerts;
-                            localStorage.setItem('marketvue_price_alerts', JSON.stringify(updatedAlerts));
+                            const auth = getAuth();
+                            const uid = auth.currentUser?.uid;
+                            savePriceAlerts(updatedAlerts, uid);
                         }
                     }
                 } catch (err) {

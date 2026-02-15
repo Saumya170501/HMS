@@ -8,9 +8,9 @@ import React from 'react';
  */
 export default function MarketSelector({ value, onChange }) {
     const markets = [
-        { id: 'crypto', label: 'Crypto', icon: '₿' },
-        { id: 'stocks', label: 'US Stocks', icon: '📈' },
-        { id: 'commodities', label: 'Commodities', icon: '🛢️' },
+        { id: 'crypto', label: 'Crypto' },
+        { id: 'stocks', label: 'US Stocks' },
+        { id: 'commodities', label: 'Commodities' },
     ];
 
     return (
@@ -22,7 +22,7 @@ export default function MarketSelector({ value, onChange }) {
             >
                 {markets.map((market) => (
                     <option key={market.id} value={market.id}>
-                        {market.icon} {market.label}
+                        {market.label}
                     </option>
                 ))}
             </select>
