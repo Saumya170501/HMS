@@ -1,12 +1,38 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Each user can only read/write their own document
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    
+    // Helper function to check authentication
+    function isAuthenticated() {
+      return request.auth != null;
     }
     
-    // Deny all other access by default
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    match /users/{userId} {
+      // Allow users to read/write ONLY their own document
+      allow read, write: if isOwner(userId);
+      
+      // Add validation to prevent storing too much data
+      allow write: if isOwner(userId) 
+                   && request.resource.size() < 500000; // 500KB limit per doc
+      
+      // Subcollections (portfolio-data, watchlist-data, etc.)
+      match /{subcollection}/{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+    
+    // NEW: Add a public read-only collection for shared data
+    // (e.g., market stats, popular assets - optional)
+    match /public/{document=**} {
+      allow read: if true;
+      allow write: if false; // Only backend can write
+    }
+    
+    // Deny everything else
     match /{document=**} {
       allow read, write: if false;
     }

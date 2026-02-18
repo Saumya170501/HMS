@@ -2,8 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import apiManager from '../services/apiManager';
 import { TrendingUp, Coins, Pickaxe, LayoutGrid } from 'lucide-react';
 
-export default function SearchBar({ onSelect, placeholder = "Search stocks, crypto, commodities..." }) {
+// ... (imports)
+
+export default function SearchBar({ onSelect, placeholder = "Search assets..." }) {
     const [query, setQuery] = useState('');
+    const [category, setCategory] = useState('all'); // 'all', 'stocks', 'crypto', 'commodities'
     const [results, setResults] = useState([]);
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -22,7 +25,8 @@ export default function SearchBar({ onSelect, placeholder = "Search stocks, cryp
         const timer = setTimeout(async () => {
             setIsLoading(true);
             try {
-                const searchResults = await apiManager.search(query);
+                // Pass category to apiManager
+                const searchResults = await apiManager.search(query, category);
                 setResults(searchResults.slice(0, 10));
                 setIsOpen(true);
                 setSelectedIndex(0);
@@ -34,7 +38,7 @@ export default function SearchBar({ onSelect, placeholder = "Search stocks, cryp
         }, 300);
 
         return () => clearTimeout(timer);
-    }, [query]);
+    }, [query, category]); // Re-run when category changes
 
     // Close on click outside
     useEffect(() => {
@@ -72,72 +76,120 @@ export default function SearchBar({ onSelect, placeholder = "Search stocks, cryp
         }
     };
 
-    const handleSelect = (result) => {
-        setQuery('');
-        setIsOpen(false);
+
+
+    const handleSelect = (asset) => {
         if (onSelect) {
-            onSelect(result);
+            onSelect(asset);
         }
+        setQuery('');
+        setResults([]);
+        setIsOpen(false);
     };
 
     const getMarketIcon = (market) => {
-        switch (market) {
-            case 'stocks': return <TrendingUp className="w-5 h-5 text-blue-500" />;
-            case 'crypto': return <Coins className="w-5 h-5 text-purple-500" />;
-            case 'commodities': return <Pickaxe className="w-5 h-5 text-amber-500" />;
-            default: return <LayoutGrid className="w-5 h-5 text-slate-500" />;
+        switch (market?.toLowerCase()) {
+            case 'crypto': return <Coins className="w-4 h-4 text-orange-500" />;
+            case 'forex': return <TrendingUp className="w-4 h-4 text-blue-500" />;
+            case 'commodities': return <Pickaxe className="w-4 h-4 text-yellow-500" />;
+            default: return <TrendingUp className="w-4 h-4 text-green-500" />;
         }
     };
 
     const getMarketColor = (market) => {
-        switch (market) {
-            case 'stocks': return 'text-blue-400';
+        switch (market?.toLowerCase()) {
             case 'crypto': return 'text-orange-400';
+            case 'forex': return 'text-blue-400';
             case 'commodities': return 'text-yellow-400';
-            default: return 'text-slate-400';
+            default: return 'text-green-400';
         }
     };
 
+    const categories = [
+        { id: 'all', label: 'All', icon: LayoutGrid },
+        { id: 'stocks', label: 'Stocks', icon: TrendingUp },
+        { id: 'crypto', label: 'Crypto', icon: Coins },
+        { id: 'commodities', label: 'Cmdty', icon: Pickaxe },
+    ];
+
     return (
         <div className="relative" ref={dropdownRef}>
-            <div className="relative">
-                <input
-                    ref={inputRef}
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    onFocus={() => query.length >= 2 && setIsOpen(true)}
-                    placeholder={placeholder}
-                    className="w-full bg-slate-800 border border-dark-border rounded-lg px-4 py-2.5 pl-10 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                />
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    {isLoading ? (
-                        <svg className="animate-spin h-4 w-4 text-slate-500" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                    ) : (
-                        <svg className="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    )}
+            <div className="relative flex flex-col gap-2">
+                {/* Search Input Group */}
+                <div className="relative">
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        onFocus={() => query.length >= 2 && setIsOpen(true)}
+                        placeholder={`Search ${category === 'all' ? 'markets' : category}...`}
+                        className="w-full bg-slate-800 border border-dark-border rounded-lg px-4 py-2.5 pl-10 pr-24 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    />
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        {isLoading ? (
+                            <svg className="animate-spin h-4 w-4 text-slate-500" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                        ) : (
+                            <svg className="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        )}
+                    </div>
+
+                    {/* Category Tabs (Desktop) */}
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                        <div className="hidden md:flex bg-slate-700/50 rounded-md p-1 gap-1">
+                            {categories.map((cat) => (
+                                <button
+                                    key={cat.id}
+                                    onClick={() => setCategory(cat.id)}
+                                    className={`p-1.5 rounded-md transition-all ${category === cat.id
+                                        ? 'bg-blue-500 text-white shadow-sm'
+                                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-600/50'}`}
+                                    title={cat.label}
+                                >
+                                    <cat.icon className="w-3.5 h-3.5" />
+                                </button>
+                            ))}
+                        </div>
+                        {/* Mobile Category Indicator */}
+                        <div className="md:hidden">
+                            {categories.map(cat => cat.id === category && (
+                                <cat.icon key={cat.id} className="w-4 h-4 text-slate-400" />
+                            ))}
+                        </div>
+                    </div>
                 </div>
-                {query && (
-                    <button
-                        onClick={() => { setQuery(''); setIsOpen(false); }}
-                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-500 hover:text-slate-300"
-                    >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                )}
+
+                {/* Mobile Category Scroll (Visible only on mobile/focus) */}
+                <div className="md:hidden flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                    {categories.map((cat) => (
+                        <button
+                            key={cat.id}
+                            onClick={() => setCategory(cat.id)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${category === cat.id
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-slate-800 text-slate-400 border border-slate-700'
+                                }`}
+                        >
+                            <cat.icon className="w-3 h-3" />
+                            {cat.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* Results Dropdown */}
             {isOpen && results.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-dark-surface border border-dark-border rounded-lg shadow-xl overflow-hidden z-50">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-dark-surface border border-dark-border rounded-lg shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="p-2 bg-slate-900/50 border-b border-white/5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider flex justify-between">
+                        <span>Best Matches</span>
+                        <span className="text-blue-400">{category === 'all' ? 'All Markets' : category}</span>
+                    </div>
                     <ul>
                         {results.map((result, index) => (
                             <li
@@ -172,8 +224,19 @@ export default function SearchBar({ onSelect, placeholder = "Search stocks, cryp
 
             {/* No Results */}
             {isOpen && results.length === 0 && query.length >= 2 && !isLoading && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-dark-surface border border-dark-border rounded-lg shadow-xl p-4 text-center text-slate-500">
-                    No results found for "{query}"
+                <div className="absolute top-full left-0 right-0 mt-2 bg-dark-surface border border-dark-border rounded-lg shadow-xl p-8 text-center">
+                    <div className="flex flex-col items-center gap-2 text-slate-500">
+                        <Pickaxe className="w-8 h-8 opacity-20" />
+                        <p className="text-sm">No {category === 'all' ? 'results' : category} found for "{query}"</p>
+                        {category !== 'all' && (
+                            <button
+                                onClick={() => setCategory('all')}
+                                className="text-xs text-blue-500 hover:underline mt-1"
+                            >
+                                Try searching all markets
+                            </button>
+                        )}
+                    </div>
                 </div>
             )}
         </div>

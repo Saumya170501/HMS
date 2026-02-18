@@ -7,7 +7,7 @@ import useThemeStore from '../../hooks/useThemeStore';
 import { getDashboardVolatilityAlerts } from '../../services/volatilityService';
 import { useAuth } from '../../context/AuthContext';
 
-export default function Navbar() {
+export default function Navbar({ onMenuClick }) {
     const navigate = useNavigate();
     const [currentTime, setCurrentTime] = useState(new Date());
     const { isDarkMode, toggleTheme } = useThemeStore();
@@ -15,16 +15,6 @@ export default function Navbar() {
     const [showDropdown, setShowDropdown] = useState(false);
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const { currentUser, logout } = useAuth();
-
-    const handleLogout = async () => {
-        try {
-            await logout();
-            navigate('/login');
-        } catch (error) {
-            console.error('Failed to log out', error);
-        }
-    };
-
     // Update time every second
     React.useEffect(() => {
         const timer = setInterval(() => {
@@ -61,8 +51,31 @@ export default function Navbar() {
         });
     };
 
+    // Logout handler
+    const handleLogout = async () => {
+        try {
+            await logout();
+            navigate('/login');
+        } catch (error) {
+            console.error('Failed to log out', error);
+        }
+    };
+
     return (
-        <header className="h-16 bg-surface border-b border-border flex items-center justify-between px-6 sticky top-0 z-10 transition-colors duration-300">
+        <header className="h-16 bg-surface border-b border-border flex items-center justify-between px-4 md:px-6 sticky top-0 z-10 transition-colors duration-300">
+            {/* Hamburger (Mobile Only) */}
+            <button
+                onClick={onMenuClick}
+                className="md:hidden p-2 -ml-2 mr-2 text-secondary hover:text-primary rounded-lg transition-colors"
+                aria-label="Toggle menu"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+
             {/* Search Bar */}
             <div className="flex-1 max-w-xl">
                 <SearchBar onSelect={(asset) => navigate(`/asset/${asset.market}/${asset.symbol}`)} />

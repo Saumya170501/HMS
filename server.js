@@ -3,12 +3,33 @@ import WebSocket from 'ws';
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { priceCache, historicalCache, correlationCache, apiCache } from './src/services/cacheService.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load .env manually since we are in a standalone Node script
+const envPath = path.resolve(__dirname, '.env');
+if (fs.existsSync(envPath)) {
+    const envConfig = fs.readFileSync(envPath, 'utf8');
+    envConfig.split('\n').forEach(line => {
+        const [key, value] = line.split('=');
+        if (key && value) {
+            process.env[key.trim()] = value.trim();
+        }
+    });
+}
 
 const PORT = 8080;
-const FINNHUB_KEY = 'd61qfo1r01qgcobqhjpgd61qfo1r01qgcobqhjq0';
-const ALPHA_VANTAGE_KEY = 'F7PBCQ141GSJA61H'; // Backup key
+const FINNHUB_KEY = process.env.VITE_FINNHUB_API_KEY || 'd61qfo1r01qgcobqhjpgd61qfo1r01qgcobqhjq0';
+const ALPHA_VANTAGE_KEY = process.env.VITE_ALPHA_VANTAGE_API_KEY || 'F7PBCQ141GSJA61H';
 
 console.log(`\n🚀 Starting HMS Consolidated Server...`);
+console.log(`🔑 Using Finnhub Key: ${FINNHUB_KEY ? '******' + FINNHUB_KEY.slice(-4) : 'Missing'}`);
+console.log(`🔑 Using Alpha Vantage Key: ${ALPHA_VANTAGE_KEY ? '******' + ALPHA_VANTAGE_KEY.slice(-4) : 'Missing'}`);
 
 // Initialize Express
 const app = express();
@@ -18,20 +39,10 @@ app.use(express.json());
 // ==========================================
 // 1. DATA CACHE & UTILS
 // ==========================================
-const cache = {
-    data: {},
-    expiry: {},
-    set: (key, data, ttlSeconds = 300) => {
-        cache.data[key] = data;
-        cache.expiry[key] = Date.now() + (ttlSeconds * 1000);
-    },
-    get: (key) => {
-        if (cache.data[key] && cache.expiry[key] > Date.now()) {
-            return cache.data[key];
-        }
-        return null;
-    }
-};
+// ==========================================
+// 1. DATA CACHE & UTILS
+// ==========================================
+// Cache is now handled by src/services/cacheService.js
 
 // Initial Market Data (Baseline) with better P/L simulation
 const marketData = {
@@ -48,6 +59,8 @@ const marketData = {
         { id: 'matic', symbol: 'MATIC', name: 'Polygon', marketCap: 28000000000, price: 1.15, change: -0.8, prevPrice: 1.16 },
         { id: 'link', symbol: 'LINK', name: 'Chainlink', marketCap: 21000000000, price: 22.5, change: 2.1, prevPrice: 22.0 },
         { id: 'uni', symbol: 'UNI', name: 'Uniswap', marketCap: 15000000000, price: 15.8, change: 0.5, prevPrice: 15.7 },
+        { id: 'shib', symbol: 'SHIB', name: 'Shiba Inu', marketCap: 11000000000, price: 0.000025, change: 5.2, prevPrice: 0.000023 },
+        { id: 'ltc', symbol: 'LTC', name: 'Litecoin', marketCap: 6000000000, price: 85.5, change: 0.3, prevPrice: 85.2 },
     ],
     stocks: [
         { id: 'aapl', symbol: 'AAPL', name: 'Apple Inc.', marketCap: 3400000000000, price: 235.5, change: 1.2, prevPrice: 232.7 },
@@ -312,42 +325,45 @@ function generateMockHistoricalData(symbol, days) {
 
 async function getHistoricalData(symbol, type, days) {
     const cacheKey = `${symbol}-${type}-${days}`;
-    const cached = cache.get(cacheKey);
-    if (cached) return cached;
 
-    let data = [];
+    // Use the enhanced historicalCache with getOrFetch pattern
+    return await historicalCache.getOrFetch(
+        cacheKey,
+        async () => {
+            let data = [];
 
-    // Priority 1: Primary API
-    try {
-        if (type === 'crypto') {
+            // Priority 1: Primary API
             try {
-                data = await fetchBinanceHistory(symbol, days);
-            } catch (binanceErr) {
-                console.warn(`Binance failed for ${symbol}, trying CoinGecko...`);
-                data = await fetchCoinGeckoHistory(symbol, days);
-            }
-        } else {
-            // Try Finnhub first, then Alpha Vantage
-            try {
-                data = await fetchFinnhubHistory(symbol, days);
+                if (type === 'crypto') {
+                    try {
+                        data = await fetchBinanceHistory(symbol, days);
+                    } catch (binanceErr) {
+                        console.warn(`Binance failed for ${symbol}, trying CoinGecko...`);
+                        data = await fetchCoinGeckoHistory(symbol, days);
+                    }
+                } else {
+                    // Try Finnhub first, then Alpha Vantage
+                    try {
+                        data = await fetchFinnhubHistory(symbol, days);
+                    } catch (err) {
+                        console.warn(`Finnhub failed for ${symbol}, switching to Alpha Vantage...`);
+                        data = await fetchAlphaVantageHistory(symbol, days);
+                    }
+                }
             } catch (err) {
-                console.warn(`Finnhub failed for ${symbol}, switching to Alpha Vantage...`);
-                data = await fetchAlphaVantageHistory(symbol, days);
+                console.error(`All APIs failed for ${symbol}:`, err.message);
             }
-        }
-    } catch (err) {
-        console.error(`All APIs failed for ${symbol}:`, err.message);
-    }
 
-    // Priority 2: Mock Data (Last Resort)
-    if (!data || data.length === 0) {
-        console.log(`Generating mock data for ${symbol}`);
-        data = generateMockHistoricalData(symbol, days);
-    } else {
-        cache.set(cacheKey, data, 300);
-    }
+            // Priority 2: Mock Data (Last Resort)
+            if (!data || data.length === 0) {
+                console.log(`Generating mock data for ${symbol}`);
+                data = generateMockHistoricalData(symbol, days);
+            }
 
-    return data;
+            return data;
+        },
+        3600 // 1 hour TTL (explicit override, though default is also 1h)
+    );
 }
 
 // COMMODITIES POLLING
@@ -423,6 +439,78 @@ app.get('/api/historical/:type/:symbol', async (req, res) => {
     }
 });
 
+app.get('/api/price/:symbol', async (req, res) => {
+    try {
+        const { symbol } = req.params;
+        const normalizedSymbol = symbol.toUpperCase();
+
+        // 1. Find in local stream first (fastest)
+        const allAssets = [...marketData.crypto, ...marketData.stocks, ...marketData.commodities];
+        const localAsset = allAssets.find(a => a.symbol === normalizedSymbol);
+
+        if (localAsset) {
+            return res.json({
+                symbol: normalizedSymbol,
+                price: localAsset.price,
+                change: localAsset.change,
+                source: 'live-stream'
+            });
+        }
+
+        // 2. If not in local stream, fetch from API with caching and fallback
+        const priceData = await priceCache.getOrFetch(
+            `price-${normalizedSymbol}`,
+            async () => {
+                // Try Finnhub (Stocks)
+                try {
+                    const url = `https://finnhub.io/api/v1/quote?symbol=${normalizedSymbol}&token=${FINNHUB_KEY}`;
+                    const response = await axios.get(url, { timeout: 5000 });
+                    if (response.data.c) return { price: response.data.c, change: response.data.dp, source: 'finnhub' };
+                } catch (e) { }
+
+                // Try CoinGecko (Crypto)
+                try {
+                    const map = { 'BTC': 'bitcoin', 'ETH': 'ethereum', 'SOL': 'solana' };
+                    const id = map[normalizedSymbol] || normalizedSymbol.toLowerCase();
+                    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd&include_24hr_change=true`;
+                    const response = await axios.get(url, { timeout: 5000 });
+                    if (response.data[id]) {
+                        return {
+                            price: response.data[id].usd,
+                            change: response.data[id].usd_24h_change,
+                            source: 'coingecko'
+                        };
+                    }
+                } catch (e) { }
+
+                // Try Alpha Vantage (Stock fallback)
+                try {
+                    const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${normalizedSymbol}&apikey=${ALPHA_VANTAGE_KEY}`;
+                    const response = await axios.get(url, { timeout: 5000 });
+                    const quote = response.data['Global Quote'];
+                    if (quote && quote['05. price']) {
+                        return {
+                            price: parseFloat(quote['05. price']),
+                            change: parseFloat(quote['10. change percent'].replace('%', '')),
+                            source: 'alpha-vantage'
+                        };
+                    }
+                } catch (e) {
+                    console.warn(`All APIs failed for ${normalizedSymbol}`);
+                }
+
+                return { price: 0, change: 0, note: 'Symbol not found' };
+            },
+
+            60 // 1 minute TTL
+        );
+
+        res.json(priceData);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 
 // ==========================================
 // 5. SERVER STARTUP & WEBSOCKET BROADCAST
@@ -463,6 +551,13 @@ setInterval(() => {
 // Graceful shutdown
 process.on('SIGINT', () => {
     console.log('\n🛑 Shutting down server...');
+
+    // Destroy caches
+    priceCache.destroy();
+    historicalCache.destroy();
+    correlationCache.destroy();
+    apiCache.destroy();
+
     binanceWs.terminate();
     finnhubWs.terminate();
     wss.close();

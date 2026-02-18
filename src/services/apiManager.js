@@ -222,49 +222,84 @@ class ApiManager {
     }
 
     /**
-     * Search across all markets
+     * Search across all markets with category filtering
      * @param {string} query - Search query
+     * @param {string} category - 'all', 'stocks', 'crypto', 'commodities'
      */
-    async search(query) {
-        const results = [];
+    async search(query, category = 'all') {
+        let results = [];
+        const searchAll = category === 'all';
 
-        // Search stocks (try Finnhub first)
-        try {
-            const finnhubResults = await this.finnhub.searchSymbols(query);
-            if (finnhubResults && finnhubResults.length > 0) {
-                results.push(...finnhubResults.map(r => ({ ...r, market: 'stocks' })));
-            } else {
-                // Fallback to Alpha Vantage
-                const stockResults = await this.alphaVantage.search(query);
-                results.push(...stockResults.map(r => ({ ...r, market: 'stocks' })));
-            }
-        } catch (error) {
-            console.error('Stock search failed:', error);
+        // 1. Primary Search (based on categories)
+        results = await this.executeSearch(query, category);
+
+        // 2. Auto-Expand: If no results found in specific category, try searching ALL
+        if (results.length === 0 && !searchAll) {
+            console.log(`No results found in ${category}, auto-expanding to all markets...`);
+            results = await this.executeSearch(query, 'all');
         }
 
-        // Search crypto with CoinGecko
-        try {
-            const coinResults = await this.coinGecko.searchCoins(query);
+        return results;
+    }
+
+    /**
+     * Internal search execution
+     */
+    async executeSearch(query, category) {
+        const results = [];
+        const searchAll = category === 'all';
+
+        // Search stocks (Finnhub/Alpha Vantage)
+        if (searchAll || category === 'stocks') {
+            try {
+                // Try Finnhub first
+                const finnhubResults = await this.finnhub.searchSymbols(query);
+                if (finnhubResults && finnhubResults.length > 0) {
+                    results.push(...finnhubResults.map(r => ({ ...r, market: 'stocks' })));
+                } else {
+                    // Fallback to Alpha Vantage
+                    const stockResults = await this.alphaVantage.search(query);
+                    if (stockResults && stockResults.length > 0) {
+                        results.push(...stockResults.map(r => ({ ...r, market: 'stocks' })));
+                    }
+                }
+            } catch (error) {
+                console.error('Stock search failed:', error);
+            }
+        }
+
+        // Search crypto (CoinGecko)
+        if (searchAll || category === 'crypto') {
+            let coinResults = [];
+            try {
+                coinResults = await this.coinGecko.searchCoins(query);
+            } catch (error) {
+                console.warn('CoinGecko search error:', error);
+            }
+
             if (coinResults && coinResults.length > 0) {
                 results.push(...coinResults.map(r => ({ ...r, market: 'crypto' })));
+            } else {
+                // Fallback to local crypto data search if CoinGecko returns empty/null
+                console.log('CoinGecko returned no results, checking local fallback...');
+                const cryptoData = await this.getCryptoData();
+                const cryptoMatches = cryptoData.filter(c =>
+                    c.symbol.toLowerCase().includes(query.toLowerCase()) ||
+                    c.name.toLowerCase().includes(query.toLowerCase())
+                );
+                results.push(...cryptoMatches.map(r => ({ ...r, market: 'crypto' })));
             }
-        } catch (error) {
-            // Fallback to local crypto data search
-            const cryptoData = await this.getCryptoData();
-            const cryptoMatches = cryptoData.filter(c =>
+        }
+
+        // Search commodities
+        if (searchAll || category === 'commodities') {
+            const commodityData = await this.getCommoditiesData();
+            const commodityMatches = commodityData.filter(c =>
                 c.symbol.toLowerCase().includes(query.toLowerCase()) ||
                 c.name.toLowerCase().includes(query.toLowerCase())
             );
-            results.push(...cryptoMatches.map(r => ({ ...r, market: 'crypto' })));
+            results.push(...commodityMatches.map(r => ({ ...r, market: 'commodities' })));
         }
-
-        // Add commodity matches
-        const commodityData = await this.getCommoditiesData();
-        const commodityMatches = commodityData.filter(c =>
-            c.symbol.toLowerCase().includes(query.toLowerCase()) ||
-            c.name.toLowerCase().includes(query.toLowerCase())
-        );
-        results.push(...commodityMatches.map(r => ({ ...r, market: 'commodities' })));
 
         return results;
     }
