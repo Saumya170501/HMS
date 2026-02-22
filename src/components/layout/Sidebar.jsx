@@ -118,10 +118,25 @@ export default function Sidebar() {
                 </div>
             </div>
 
+<<<<<<< HEAD
             {/* Footer */}
             <div className="sidebar-footer-detail p-4 border-t border-border">
                 <div className="text-[10px] text-secondary text-center font-medium">
                     15-min delayed data
+=======
+                {/* Footer */}
+                <div className="p-4 border-t border-border">
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-center gap-4 text-[10px] text-secondary font-medium">
+                            <NavLink to="/privacy" className="hover:text-primary transition-colors">Privacy</NavLink>
+                            <NavLink to="/terms" className="hover:text-primary transition-colors">Terms</NavLink>
+                            <NavLink to="/feedback" className="hover:text-primary transition-colors font-bold text-blue-500">Feedback</NavLink>
+                        </div>
+                        <div className="text-[10px] text-secondary text-center font-medium">
+                            15-min delayed data
+                        </div>
+                    </div>
+>>>>>>> b094702fd2785f0ea4cd17431efbb841318dc055
                 </div>
             </div>
         </aside>

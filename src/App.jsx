@@ -14,6 +14,10 @@ import HistoricalData from './pages/HistoricalData';
 import VolatilityAlerts from './pages/VolatilityAlerts';
 import PriceAlerts from './pages/PriceAlerts';
 import Analytics from './pages/Analytics';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import Feedback from './pages/Feedback';
+import NotFound from './pages/NotFound';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import VerifyEmail from './pages/VerifyEmail';
@@ -85,6 +89,13 @@ export default function App() {
                         <Route path="/signup" element={<Signup />} />
                         <Route path="/verify-email" element={<VerifyEmail />} />
 
+                        {/* Semi-Protected Routes (Layout but Public) */}
+                        <Route element={<AppLayout />}>
+                            <Route path="/privacy" element={<PrivacyPolicy />} />
+                            <Route path="/terms" element={<TermsOfService />} />
+                            <Route path="/feedback" element={<Feedback />} />
+                        </Route>
+
                         {/* Protected Routes */}
                         <Route element={<ProtectedRoute />}>
                             <Route element={<AppLayout />}>
@@ -102,6 +113,9 @@ export default function App() {
                                 <Route path="/settings" element={<Settings />} />
                             </Route>
                         </Route>
+
+                        {/* 404 Route */}
+                        <Route path="*" element={<NotFound />} />
                     </Routes>
                 </Router>
             </AuthProvider>

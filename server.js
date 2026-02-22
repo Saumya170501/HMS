@@ -24,8 +24,15 @@ if (fs.existsSync(envPath)) {
 }
 
 const PORT = 8080;
-const FINNHUB_KEY = process.env.VITE_FINNHUB_API_KEY || 'd61qfo1r01qgcobqhjpgd61qfo1r01qgcobqhjq0';
-const ALPHA_VANTAGE_KEY = process.env.VITE_ALPHA_VANTAGE_API_KEY || 'F7PBCQ141GSJA61H';
+const FINNHUB_KEY = process.env.VITE_FINNHUB_API_KEY;
+const ALPHA_VANTAGE_KEY = process.env.VITE_ALPHA_VANTAGE_API_KEY;
+
+if (!FINNHUB_KEY) {
+    console.warn('⚠️ WARNING: VITE_FINNHUB_API_KEY is not defined in environment variables. Live stock data will fail.');
+}
+if (!ALPHA_VANTAGE_KEY) {
+    console.warn('⚠️ WARNING: VITE_ALPHA_VANTAGE_API_KEY is not defined in environment variables. Fallback stock data will fail.');
+}
 
 console.log(`\n🚀 Starting HMS Consolidated Server...`);
 console.log(`🔑 Using Finnhub Key: ${FINNHUB_KEY ? '******' + FINNHUB_KEY.slice(-4) : 'Missing'}`);
