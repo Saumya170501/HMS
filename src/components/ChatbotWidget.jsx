@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X, Send, Bot, User, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function ChatbotWidget() {
     const [isOpen, setIsOpen] = useState(false);
@@ -9,6 +10,7 @@ export default function ChatbotWidget() {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef(null);
+    const navigate = useNavigate();
 
     // Auto-scroll to bottom of chat
     const scrollToBottom = () => {
@@ -63,6 +65,64 @@ export default function ChatbotWidget() {
         }
     };
 
+    const renderMessageContent = (content) => {
+        if (typeof content !== 'string') return content;
+
+        // Match standard markdown links: [Text](/path) or [Text](https://...)
+        const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+        const parts = [];
+        let lastIndex = 0;
+        let match;
+
+        while ((match = linkRegex.exec(content)) !== null) {
+            // Push text before the link
+            if (match.index > lastIndex) {
+                parts.push(<span key={`text-${lastIndex}`}>{content.substring(lastIndex, match.index)}</span>);
+            }
+
+            const linkText = match[1];
+            const linkUrl = match[2];
+
+            if (linkUrl.startsWith('/')) {
+                // Internal route: render as a sleek button
+                parts.push(
+                    <button
+                        key={`btn-${match.index}`}
+                        onClick={() => {
+                            setIsOpen(false); // Close chat when navigating so they can see the page
+                            navigate(linkUrl);
+                        }}
+                        className="inline-flex items-center mt-2 mb-1 px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/50 rounded-lg text-xs font-semibold transition-colors shadow-sm shadow-blue-900/20"
+                    >
+                        {linkText}
+                    </button>
+                );
+            } else {
+                // External link: render as standard <a>
+                parts.push(
+                    <a
+                        key={`link-${match.index}`}
+                        href={linkUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:text-blue-300 underline underline-offset-2 font-medium"
+                    >
+                        {linkText}
+                    </a>
+                );
+            }
+
+            lastIndex = linkRegex.lastIndex;
+        }
+
+        // Push any remaining text
+        if (lastIndex < content.length) {
+            parts.push(<span key={`text-${lastIndex}`}>{content.substring(lastIndex)}</span>);
+        }
+
+        return parts.length > 0 ? parts : content;
+    };
+
     return (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
             {/* Chat Window */}
@@ -96,9 +156,9 @@ export default function ChatbotWidget() {
                                 </div>
                                 <div className={`p-3 rounded-2xl text-sm ${msg.role === 'user'
                                     ? 'bg-blue-600 text-white rounded-tr-sm'
-                                    : 'bg-slate-800 border border-slate-700 text-slate-200 rounded-tl-sm'
+                                    : 'bg-slate-800 border border-slate-700 text-slate-200 rounded-tl-sm flex flex-col items-start'
                                     }`}>
-                                    {msg.content}
+                                    {renderMessageContent(msg.content)}
                                 </div>
                             </div>
                         ))}

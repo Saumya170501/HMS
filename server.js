@@ -530,10 +530,32 @@ app.get('/api/price/:symbol', async (req, res) => {
 const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
 
 const SYSTEM_PROMPT = `
-You are the MarketVue AI Assistant, a helpful and professional financial data expert.
-Your job is to assist users with understanding market trends, reading heatmaps, and analyzing stocks, crypto, and commodities.
-Do not provide direct financial advice (e.g., "You should buy X"). Always add a disclaimer if appropriate.
-Keep your answers concise, clear, and formatted nicely.
+You are the MarketVue AI Assistant, an expert guide specifically for the MarketVue platform.
+
+CRITICAL INSTRUCTIONS:
+1. ONLY answer questions related to the MarketVue website, its features, and financial markets. If a user asks a general knowledge question (e.g., "What is the capital of France?", "Write a poem", "Tell me a joke"), you MUST politely decline and steer them back to MarketVue features.
+2. You have full knowledge of the website's features. If a user asks how to do something, or where to find something, provide a direct navigation button using this exact markdown format: [Button Text](/route)
+
+AVAILABLE ROUTES:
+- [Go to Dashboard](/dashboard): For general market overview, top trending assets, and portfolio summary.
+- [Open Heatmap](/heatmap): For visual market performance, sizing by market cap, covering Stocks, Crypto, and Commodities.
+- [Volatility Alerts](/volatility): For sudden price jumps, drops, or unusual trading volume.
+- [Compare Assets](/compare): To compare two assets side-by-side (e.g., BTC vs ETH).
+- [Historical Data](/historical): For price tables, OHLC data, and charts over time.
+- [My Watchlist](/watchlist): To track favorite assets.
+- [My Portfolio](/portfolio): To track holdings and P&L.
+- [Price Alerts](/alerts): To configure custom email/push alerts.
+- [Advanced Analytics](/analytics): For correlation matrices and AI predictions.
+- [Account Settings](/settings): For profile, API keys, and preferences.
+- [Submit Feedback](/feedback): If they found a bug or have a suggestion.
+
+Example interaction:
+User: "How do I see if my crypto is crashing?"
+Assistant: "You can keep an eye on sudden price movements using our Volatility Alerts panel, or track your specific coins in your Portfolio. [View Volatility Alerts](/volatility)"
+
+Example interaction 2:
+User: "What's the capital of Spain?"
+Assistant: "I specialize in financial markets and the MarketVue platform. Is there a specific stock or crypto you'd like me to analyze for you today?"
 `;
 
 app.post('/api/chat', async (req, res) => {
@@ -544,45 +566,56 @@ app.post('/api/chat', async (req, res) => {
             return res.status(400).json({ error: 'Invalid message format' });
         }
 
-        // 1. If Gemini is configured, use it
+        let useMock = !genAI;
+        let responseText = "";
+
+        // 1. Try Gemini if configured
         if (genAI) {
-            const model = genAI.getGenerativeModel({
-                model: "gemini-1.5-flash",
-                systemInstruction: SYSTEM_PROMPT
-            });
+            try {
+                const model = genAI.getGenerativeModel({
+                    model: "gemini-1.5-flash",
+                    systemInstruction: SYSTEM_PROMPT
+                });
 
-            // Convert messages to Gemini history format (excluding the very last user message)
-            const history = messages.slice(0, -1).map(msg => ({
-                role: msg.role === 'assistant' ? 'model' : 'user',
-                parts: [{ text: msg.content }]
-            }));
+                // Convert messages to Gemini history format (excluding the very last user message)
+                const history = messages.slice(0, -1).map(msg => ({
+                    role: msg.role === 'assistant' ? 'model' : 'user',
+                    parts: [{ text: msg.content }]
+                }));
 
-            const latestMessage = messages[messages.length - 1].content;
+                const latestMessage = messages[messages.length - 1].content;
 
-            const chat = model.startChat({ history });
-            const result = await chat.sendMessage(latestMessage);
-
-            return res.json({ reply: result.response.text() });
+                const chat = model.startChat({ history });
+                const result = await chat.sendMessage(latestMessage);
+                responseText = result.response.text();
+            } catch (err) {
+                console.error("Gemini API Error (Falling back to Mock):", err.message);
+                useMock = true;
+            }
         }
 
-        // 2. Fallback Mock Mode (If no API Key)
-        else {
-            console.log("Chatbot: Responding in Mock Mode (No GEMINI_API_KEY found)");
+        // 2. Fallback Mock Mode (If no API Key OR if API call failed)
+        if (useMock) {
+            console.log("Chatbot: Responding in Mock Mode");
 
             // Artificial delay to feel "real"
             await new Promise(resolve => setTimeout(resolve, 1500));
 
             const lastUserMsg = messages[messages.length - 1].content.toLowerCase();
-            let mockReply = "I am currently in **Offline Demo Mode** because my API key is not configured. However, I am ready to analyze market data once fully connected!";
+            let mockReply = "I am currently in **Offline Demo Mode** because my API key is invalid or not configured. However, I am ready to analyze market data once fully connected!\n\nWould you like to visit your [Account Settings](/settings)?";
 
             if (lastUserMsg.includes('bitcoin') || lastUserMsg.includes('btc')) {
-                mockReply = "*(Mock Data)* Bitcoin (BTC) is currently showing high volatility. Our heatmaps indicate strong correlations with the broader tech sector today.";
+                mockReply = "*(Mock Data)* Bitcoin (BTC) is currently showing high volatility. Our heatmaps indicate strong correlations with the broader tech sector today. Check it out here: [Open Heatmap](/heatmap)";
             } else if (lastUserMsg.includes('hello') || lastUserMsg.includes('hi')) {
-                mockReply = "Hello there! I'm operating in Mock Mode right now, but I'm ready to help you analyze your portfolio. What would you like to know?";
+                mockReply = "Hello there! I'm operating in Mock Mode right now, but I can still help you navigate. Want to see your saved crypto? [Go to Portfolio](/portfolio)";
+            } else if (lastUserMsg.includes('alerts') || lastUserMsg.includes('volatility')) {
+                mockReply = "You can track rapid price changes on the Volatility panel. [View Volatility Alerts](/volatility)";
             }
 
-            return res.json({ reply: mockReply });
+            responseText = mockReply;
         }
+
+        return res.json({ reply: responseText });
 
     } catch (error) {
         console.error('Chat API Error:', error);
