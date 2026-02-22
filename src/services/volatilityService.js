@@ -87,11 +87,19 @@ export async function get24hPriceChange(assetSymbol, assetType) {
  *     opposite_strength: "strong"
  *   }, ...]
  */
-export function findOppositePairs(allAssets) {
+export function findOppositePairs(allAssets, sensitivity = 'medium') {
     // Validate input
     if (!allAssets || !Array.isArray(allAssets) || allAssets.length < 2) {
         return [];
     }
+
+    // Dynamic thresholds based on sensitivity
+    const thresholds = {
+        low: { minChange: 3, minSignificant: 5, minDivergence: 8, strongBar: 12 },
+        medium: { minChange: 2, minSignificant: 3, minDivergence: 5, strongBar: 8 },
+        high: { minChange: 1, minSignificant: 2, minDivergence: 3, strongBar: 5 },
+    };
+    const t = thresholds[sensitivity] || thresholds.medium;
 
     const oppositePairs = [];
 
@@ -104,8 +112,13 @@ export function findOppositePairs(allAssets) {
             const change1 = asset1.change_percent ?? asset1.change ?? 0;
             const change2 = asset2.change_percent ?? asset2.change ?? 0;
 
-            // Skip if both changes are too small (< 0.5%)
-            if (Math.abs(change1) < 0.5 && Math.abs(change2) < 0.5) {
+            // Skip if both changes are too small
+            if (Math.abs(change1) < t.minChange && Math.abs(change2) < t.minChange) {
+                continue;
+            }
+
+            // At least ONE asset must have a significant move
+            if (Math.abs(change1) < t.minSignificant && Math.abs(change2) < t.minSignificant) {
                 continue;
             }
 
@@ -119,11 +132,16 @@ export function findOppositePairs(allAssets) {
             // Calculate divergence score
             const divergenceScore = Math.abs(change1 - change2);
 
-            // Classify strength
+            // Only include if divergence meets threshold
+            if (divergenceScore < t.minDivergence) {
+                continue;
+            }
+
+            // Classify strength based on sensitivity
             let oppositeStrength;
-            if (divergenceScore > 3) {
+            if (divergenceScore > t.strongBar) {
                 oppositeStrength = 'strong';
-            } else if (divergenceScore >= 1.5) {
+            } else if (divergenceScore >= t.minDivergence) {
                 oppositeStrength = 'moderate';
             } else {
                 oppositeStrength = 'low';
@@ -173,9 +191,9 @@ export function findOppositePairs(allAssets) {
  *     strength: "strong"
  *   }, ...]
  */
-export function getVolatilityPairAlerts(assets, correlations = {}) {
+export function getVolatilityPairAlerts(assets, correlations = {}, sensitivity = 'medium') {
     // Get opposite-moving pairs
-    const oppositePairs = findOppositePairs(assets);
+    const oppositePairs = findOppositePairs(assets, sensitivity);
 
     if (oppositePairs.length === 0) {
         return [];
@@ -234,16 +252,21 @@ export function getVolatilityPairAlerts(assets, correlations = {}) {
  * 
  * @returns {Promise<Array>} Array of 6 volatility alerts (2 per market)
  */
-export async function getDashboardVolatilityAlerts() {
+export async function getDashboardVolatilityAlerts(sensitivity = 'medium') {
     try {
-        const grouped = await getVolatilityAlertsByMarket();
+        const grouped = await getVolatilityAlertsByMarket(sensitivity);
 
-        // Select 2 from each market, ensuring no duplicate assets
-        const stockAlerts = selectDiversePairs(grouped.stocks, 2);
-        const cryptoAlerts = selectDiversePairs(grouped.crypto, 2);
-        const commodityAlerts = selectDiversePairs(grouped.commodities, 2);
+        // Select only the top 1 from each market (most significant)
+        const stockAlerts = selectDiversePairs(grouped.stocks, 1);
+        const cryptoAlerts = selectDiversePairs(grouped.crypto, 1);
+        const commodityAlerts = selectDiversePairs(grouped.commodities, 1);
 
-        return [...stockAlerts, ...cryptoAlerts, ...commodityAlerts];
+        // Combine and filter — only strong/moderate alerts
+        const all = [...stockAlerts, ...cryptoAlerts, ...commodityAlerts]
+            .filter(a => a.strength === 'strong' || a.strength === 'moderate');
+
+        // Return at most 3 major alerts
+        return all.slice(0, 3);
     } catch (error) {
         console.error('Failed to get dashboard volatility alerts:', error);
         return [];
@@ -279,7 +302,7 @@ function selectDiversePairs(alerts, count) {
  * 
  * @returns {Promise<Object>} { stocks: [...], crypto: [...], commodities: [...] }
  */
-export async function getVolatilityAlertsByMarket() {
+export async function getVolatilityAlertsByMarket(sensitivity = 'medium') {
     try {
         // Get data from all markets
         const [crypto, stocks, commodities] = await Promise.all([
@@ -337,11 +360,11 @@ export async function getVolatilityAlertsByMarket() {
         }));
 
         // Get alerts for each market type
-        const stockAlerts = getVolatilityPairAlerts(stocksWithMarket, knownCorrelations)
+        const stockAlerts = getVolatilityPairAlerts(stocksWithMarket, knownCorrelations, sensitivity)
             .map(a => ({ ...a, market: 'stocks' }));
-        const cryptoAlerts = getVolatilityPairAlerts(cryptoWithMarket, knownCorrelations)
+        const cryptoAlerts = getVolatilityPairAlerts(cryptoWithMarket, knownCorrelations, sensitivity)
             .map(a => ({ ...a, market: 'crypto' }));
-        const commodityAlerts = getVolatilityPairAlerts(commoditiesWithMarket, knownCorrelations)
+        const commodityAlerts = getVolatilityPairAlerts(commoditiesWithMarket, knownCorrelations, sensitivity)
             .map(a => ({ ...a, market: 'commodities' }));
 
         return {

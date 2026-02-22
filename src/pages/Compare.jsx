@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { TrendingUp, TrendingDown, ArrowRight, Link as LinkIcon, Cpu, Sparkles, Scale, AlertTriangle } from 'lucide-react';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -20,7 +21,7 @@ import {
 // Market Type Selector Button Group
 const MarketTypeSelector = ({ value, onChange, label }) => (
     <div className="space-y-2">
-        <label className="text-sm text-slate-400">{label}</label>
+        <label className="text-sm text-secondary">{label}</label>
         <div className="flex gap-2">
             {[
                 { value: 'crypto', label: 'Crypto' },
@@ -32,7 +33,7 @@ const MarketTypeSelector = ({ value, onChange, label }) => (
                     onClick={() => onChange(type.value)}
                     className={`flex-1 px-3 py-2 rounded-lg font-medium text-sm transition-all ${value === type.value
                         ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
-                        : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                        : 'bg-slate-100 dark:bg-slate-800 text-secondary hover:text-primary hover:bg-slate-200 dark:hover:bg-slate-700'
                         }`}
                 >
                     {type.label}
@@ -45,12 +46,12 @@ const MarketTypeSelector = ({ value, onChange, label }) => (
 // Asset Dropdown Selector
 const AssetDropdown = ({ value, onChange, assets, label, disabled }) => (
     <div className="space-y-2">
-        <label className="text-sm text-slate-400">{label}</label>
+        <label className="text-sm text-secondary">{label}</label>
         <select
             value={value}
             onChange={(e) => onChange(e.target.value)}
             disabled={disabled}
-            className="w-full bg-slate-800 border border-dark-border rounded-lg px-4 py-2.5 text-sm text-slate-200 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            className="w-full bg-slate-100 dark:bg-slate-800 border border-border rounded-lg px-4 py-2.5 text-sm text-primary font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
         >
             <option value="">Select an asset</option>
             {assets.map((asset) => (
@@ -72,14 +73,14 @@ const TwoStepAssetSelector = ({
     cardColor = 'blue'
 }) => {
     const colorClasses = {
-        blue: 'border-blue-500/30 bg-blue-900/10',
-        amber: 'border-amber-500/30 bg-amber-900/10'
+        blue: 'border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-900/10',
+        amber: 'border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-900/10'
     };
 
     const selectedAsset = assets.find(a => a.symbol === assetSymbol);
 
     return (
-        <div className={`bg-dark-surface border border-dark-border rounded-xl p-4 ${colorClasses[cardColor]}`}>
+        <div className={`bg-surface border border-border rounded-xl p-4 ${colorClasses[cardColor]}`}>
             <div className="space-y-4">
                 {/* Step 1: Choose Market Type */}
                 <MarketTypeSelector
@@ -99,15 +100,15 @@ const TwoStepAssetSelector = ({
 
                 {/* Selected Asset Preview */}
                 {selectedAsset && (
-                    <div className="p-3 bg-slate-800/50 rounded-lg border border-slate-700">
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-border">
                         <div className="flex items-center justify-between">
-                            <span className="font-mono font-bold text-lg text-slate-200">{selectedAsset.symbol}</span>
-                            <span className={`font-mono ${selectedAsset.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            <span className="font-mono font-bold text-lg text-primary">{selectedAsset.symbol}</span>
+                            <span className={`font-mono ${selectedAsset.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                 {selectedAsset.change >= 0 ? '+' : ''}{selectedAsset.change?.toFixed(2)}%
                             </span>
                         </div>
-                        <div className="text-sm text-slate-500">{selectedAsset.name}</div>
-                        <div className="text-xl font-mono text-slate-200 mt-2">${selectedAsset.price?.toLocaleString()}</div>
+                        <div className="text-sm text-secondary">{selectedAsset.name}</div>
+                        <div className="text-xl font-mono text-primary mt-2">${selectedAsset.price?.toLocaleString()}</div>
                     </div>
                 )}
             </div>
@@ -141,12 +142,12 @@ const MetricRow = ({ label, value1, value2, format = 'number' }) => {
     };
 
     return (
-        <div className="grid grid-cols-3 gap-4 py-3 border-b border-dark-border last:border-0">
-            <div className="text-slate-400 text-sm">{label}</div>
-            <div className={`font-mono text-sm text-center ${value1 !== null && isValue1Better() ? 'text-green-400' : 'text-slate-200'}`}>
+        <div className="grid grid-cols-3 gap-4 py-3 border-b border-border last:border-0">
+            <div className="text-secondary text-sm">{label}</div>
+            <div className={`font-mono text-sm text-center ${value1 !== null && isValue1Better() ? 'text-green-600 dark:text-green-400' : 'text-primary'}`}>
                 {formatValue(value1)}
             </div>
-            <div className={`font-mono text-sm text-center ${value2 !== null && !isValue1Better() && value2 !== value1 ? 'text-green-400' : 'text-slate-200'}`}>
+            <div className={`font-mono text-sm text-center ${value2 !== null && !isValue1Better() && value2 !== value1 ? 'text-green-600 dark:text-green-400' : 'text-primary'}`}>
                 {formatValue(value2)}
             </div>
         </div>
@@ -158,9 +159,9 @@ const MiniCorrelationBadge = ({ correlation }) => {
     const { strength, direction } = classifyCorrelation(correlation);
 
     const colorClasses = {
-        high: direction === 'positive' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30',
-        moderate: direction === 'positive' ? 'bg-green-500/10 text-green-300 border-green-500/20' : 'bg-red-500/10 text-red-300 border-red-500/20',
-        low: 'bg-slate-700/50 text-slate-400 border-slate-600'
+        high: direction === 'positive' ? 'bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30',
+        moderate: direction === 'positive' ? 'bg-green-500/10 text-green-600 dark:text-green-300 border-green-500/20' : 'bg-red-500/10 text-red-600 dark:text-red-300 border-red-500/20',
+        low: 'bg-slate-100 dark:bg-slate-700/50 text-secondary border-border'
     };
 
     const labels = {
@@ -181,9 +182,9 @@ const CorrelationBadge = ({ value }) => {
     const { strength, direction } = classifyCorrelation(value);
 
     const getColor = () => {
-        if (strength === 'high') return direction === 'positive' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400';
-        if (strength === 'moderate') return direction === 'positive' ? 'bg-green-500/10 text-green-300' : 'bg-red-500/10 text-red-300';
-        return 'bg-slate-700 text-slate-400';
+        if (strength === 'high') return direction === 'positive' ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-red-500/20 text-red-600 dark:text-red-400';
+        if (strength === 'moderate') return direction === 'positive' ? 'bg-green-500/10 text-green-600 dark:text-green-300' : 'bg-red-500/10 text-red-600 dark:text-red-300';
+        return 'bg-slate-100 dark:bg-slate-700 text-secondary';
     };
 
     const labels = { high: 'High', moderate: 'Moderate', low: 'Low' };
@@ -199,9 +200,9 @@ const CorrelationBadge = ({ value }) => {
 // Trend Indicator
 const TrendIndicator = ({ trend }) => {
     const config = {
-        increasing: { Icon: TrendingUp, text: 'Strengthening', color: 'text-green-400' },
-        decreasing: { Icon: TrendingDown, text: 'Weakening', color: 'text-red-400' },
-        stable: { Icon: ArrowRight, text: 'Stable', color: 'text-slate-400' }
+        increasing: { Icon: TrendingUp, text: 'Strengthening', color: 'text-green-600 dark:text-green-400' },
+        decreasing: { Icon: TrendingDown, text: 'Weakening', color: 'text-red-600 dark:text-red-400' },
+        stable: { Icon: ArrowRight, text: 'Stable', color: 'text-secondary' }
     };
 
     const { Icon, text, color } = config[trend] || config.stable;
@@ -215,8 +216,10 @@ const TrendIndicator = ({ trend }) => {
 };
 
 export default function Compare() {
+    const [searchParams] = useSearchParams();
+
     // Market types for each asset
-    const [asset1MarketType, setAsset1MarketType] = useState('crypto');
+    const [asset1MarketType, setAsset1MarketType] = useState(searchParams.get('market') || 'crypto');
     const [asset2MarketType, setAsset2MarketType] = useState('stocks');
 
     // Assets for each market type
@@ -224,7 +227,7 @@ export default function Compare() {
     const [asset2MarketAssets, setAsset2MarketAssets] = useState([]);
 
     // Selected symbols
-    const [asset1Symbol, setAsset1Symbol] = useState('');
+    const [asset1Symbol, setAsset1Symbol] = useState(searchParams.get('asset1') || '');
     const [asset2Symbol, setAsset2Symbol] = useState('');
 
     // Selected asset objects
@@ -798,7 +801,7 @@ export default function Compare() {
             {/* Empty State */}
             {(!asset1 || !asset2) && (
                 <div className="bg-surface border border-border rounded-xl p-12 text-center shadow-sm">
-                    <Scale className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                    <Scale className="w-12 h-12 text-secondary/30 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold text-primary mb-2">Select Two Assets to Compare</h3>
                     <p className="text-secondary text-sm">
                         Choose market type, then select an asset from the dropdown to see correlation analysis

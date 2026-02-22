@@ -276,3 +276,246 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* ============================================================
+   RESPONSIVE UTILITIES
+   ============================================================ */
+
+/* Touch target — ensure min 44×44px for mobile accessibility */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Collapsible section for mobile */
+.collapsible {
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.collapsible.collapsed {
+  max-height: 0 !important;
+}
+
+.collapsible.expanded {
+  max-height: 500px;
+  /* fallback — real height set via JS */
+}
+
+/* Hide horizontal scrollbar on mobile scroll containers */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Responsive text scaling */
+@media (max-width: 639px) {
+  .mobile-text-sm {
+    font-size: 0.8125rem;
+    /* 13px */
+    line-height: 1.25rem;
+  }
+
+  .mobile-text-base {
+    font-size: 0.875rem;
+    /* 14px */
+    line-height: 1.375rem;
+  }
+
+  .mobile-text-lg {
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+  }
+
+  .mobile-p-tight {
+    padding: 0.75rem;
+  }
+}
+
+/* Sidebar collapsed rail mode for tablet */
+@media (min-width: 640px) and (max-width: 767px) {
+  .sidebar-rail {
+    width: 4.5rem !important;
+    /* 72px — icons only */
+  }
+
+  .sidebar-rail .nav-label {
+    display: none;
+  }
+
+  .sidebar-rail .brand-text {
+    display: none;
+  }
+
+  .sidebar-rail .sidebar-footer-detail {
+    display: none;
+  }
+
+  .sidebar-rail:hover {
+    width: 16rem !important;
+    /* Expand on hover */
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  }
+
+  .sidebar-rail:hover .nav-label,
+  .sidebar-rail:hover .brand-text,
+  .sidebar-rail:hover .sidebar-footer-detail {
+    display: block;
+  }
+}
+
+/* Ensure smooth transition for sidebar width */
+.sidebar-transition {
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (max-width: 767px) {
+  .heatmap-dual {
+    flex-direction: column !important;
+  }
+
+  .heatmap-dual>.heatmap-pane {
+    min-height: 45vh;
+  }
+
+  .heatmap-divider {
+    width: 100% !important;
+    height: 1px !important;
+  }
+}
+
+/* ============================================================
+   BOTTOM NAVIGATION BAR
+   ============================================================ */
+
+.bottom-nav {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1px solid rgba(226, 232, 240, 0.6);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.dark .bottom-nav {
+  background: rgba(15, 23, 42, 0.88);
+  border-top: 1px solid rgba(51, 65, 85, 0.5);
+}
+
+.bottom-nav-inner {
+  height: 64px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.bottom-nav-tab {
+  -webkit-tap-highlight-color: transparent;
+  min-width: 56px;
+}
+
+.bottom-nav-tab:active {
+  transform: scale(0.92);
+  transition: transform 0.1s ease;
+}
+
+/* ============================================================
+   HORIZONTAL SNAP SCROLL (MOBILE KPI CARDS)
+   ============================================================ */
+
+.mobile-scroll-snap {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  gap: 12px;
+  padding-bottom: 8px;
+}
+
+.mobile-scroll-snap::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-scroll-snap {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.mobile-scroll-snap>* {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   SKELETON LOADER
+   ============================================================ */
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg,
+      var(--surface) 25%,
+      var(--border) 50%,
+      var(--surface) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* ============================================================
+   MODAL ANIMATIONS
+   ============================================================ */
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-slideUp {
+  animation: slideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

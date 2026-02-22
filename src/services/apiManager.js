@@ -1,3 +1,4 @@
+import axios from 'axios';
 import alphaVantageService from './alphaVantageService';
 import finnhubService from './finnhubService';
 import coinGeckoService from './coinGeckoService';
@@ -12,6 +13,32 @@ import { getCoinGeckoId } from '../config/cryptoMapping';
  * NOW WITH FINNHUB (stocks) AND COINGECKO (crypto) INTEGRATION!
  */
 class ApiManager {
+    /**
+     * Get historical price data
+     * Uses the centralized backend server endpoint for consistent data & caching
+     * @param {string} symbol - Asset symbol
+     * @param {string} market - Market type
+     * @param {string} timeframe - '1D', '1W', '1M', '1Y'
+     */
+    async getHistoricalData(symbol, market, timeframe = '1M') {
+        const days = this.getTimeframeDays(timeframe);
+
+        try {
+            // Use the consolidated server endpoint which handles all API keys and fallbacks
+            // Default to localhost:8080 if running locally, or relative path if proxied
+            const response = await axios.get(`http://localhost:8080/api/historical/${market}/${symbol}`, {
+                params: { days }
+            });
+
+            if (response.data && response.data.success) {
+                return response.data.data;
+            }
+            return [];
+        } catch (error) {
+            console.error(`Failed to fetch historical data for ${symbol}:`, error);
+            return [];
+        }
+    }
     constructor() {
         this.alphaVantage = alphaVantageService;
         this.finnhub = finnhubService;

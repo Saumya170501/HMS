@@ -57,7 +57,7 @@ export default function AssetIcon({ symbol, market, size = 28, className = '' })
         <img
             src={icon.value}
             alt={`${symbol} icon`}
-            className={`rounded-full object-cover bg-white/10 ${className}`}
+            className={`rounded-full object-cover bg-slate-100 dark:bg-slate-800 ${className}`}
             style={sizeStyle}
             onError={(e) => {
                 // Try fallback URL if available

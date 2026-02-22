@@ -89,41 +89,59 @@ const AlertCard = ({ alert }) => {
 };
 
 // Market Section Component
-const MarketSection = ({ title, icon: Icon, alerts, color, isLoading }) => (
-    <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
-        <div className={`px-4 py-3 border-b border-border bg-gradient-to-r ${color}`}>
-            <h2 className="font-semibold text-white dark:text-slate-200 flex items-center gap-2">
-                <Icon className="w-5 h-5 text-white/90 dark:text-slate-100/80" />
-                <span>{title}</span>
-                <span className="ml-auto text-xs text-white/80 dark:text-slate-200/60 font-mono bg-black/20 px-2 py-0.5 rounded">
-                    {alerts.length} alerts
-                </span>
-            </h2>
-        </div>
-        <div className="p-4">
-            {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                    <svg className="animate-spin h-6 w-6 text-blue-500" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                </div>
-            ) : alerts.length > 0 ? (
-                <div className="space-y-3">
-                    {alerts.map((alert, idx) => (
-                        <AlertCard key={idx} alert={alert} />
-                    ))}
-                </div>
-            ) : (
-                <div className="text-center py-12 text-secondary">
-                    <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-slate-400/50" />
-                    <span className="text-sm font-medium">No alerts triggered</span>
-                    <p className="text-xs text-secondary mt-1">Market moving normally</p>
+const MarketSection = ({ title, icon: Icon, alerts, color, isLoading }) => {
+    const [showAll, setShowAll] = useState(false);
+    const INITIAL_COUNT = 3;
+    const displayedAlerts = showAll ? alerts : alerts.slice(0, INITIAL_COUNT);
+    const hasMore = alerts.length > INITIAL_COUNT;
+
+    return (
+        <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
+            <div className={`px-4 py-3 border-b border-border bg-gradient-to-r ${color}`}>
+                <h2 className="font-semibold text-white dark:text-slate-200 flex items-center gap-2">
+                    <Icon className="w-5 h-5 text-white/90 dark:text-slate-100/80" />
+                    <span>{title}</span>
+                    <span className="ml-auto text-xs text-white/80 dark:text-slate-200/60 font-mono bg-black/20 px-2 py-0.5 rounded">
+                        {alerts.length} alerts
+                    </span>
+                </h2>
+            </div>
+            <div className="p-4">
+                {isLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                        <svg className="animate-spin h-6 w-6 text-blue-500" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                    </div>
+                ) : alerts.length > 0 ? (
+                    <div className="space-y-3">
+                        {displayedAlerts.map((alert, idx) => (
+                            <AlertCard key={idx} alert={alert} />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-12 text-secondary">
+                        <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-slate-400/50" />
+                        <span className="text-sm font-medium">No alerts triggered</span>
+                        <p className="text-xs text-secondary mt-1">Market moving normally</p>
+                    </div>
+                )}
+            </div>
+
+            {hasMore && !isLoading && (
+                <div className="px-4 py-3 border-t border-border bg-slate-50 dark:bg-slate-800/50 text-center">
+                    <button
+                        onClick={() => setShowAll(!showAll)}
+                        className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                    >
+                        {showAll ? 'Show Less' : `Show All (${alerts.length})`}
+                    </button>
                 </div>
             )}
         </div>
-    </div>
-);
+    );
+};
 
 // Summary Stats Component
 const SummaryStats = ({ stockAlerts, cryptoAlerts, commodityAlerts }) => {

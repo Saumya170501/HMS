@@ -26,6 +26,7 @@ export default function Portfolio() {
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showAllHoldings, setShowAllHoldings] = useState(false);
 
     useEffect(() => {
         loadPortfolio();
@@ -117,21 +118,28 @@ export default function Portfolio() {
     const displayPortfolio = livePortfolio || portfolio;
     const isEmpty = !displayPortfolio.holdings || displayPortfolio.holdings.length === 0;
 
+    // Progressive Disclosure Logic
+    const INITIAL_DISPLAY_COUNT = 5;
+    const displayedHoldings = showAllHoldings
+        ? displayPortfolio.holdings
+        : displayPortfolio.holdings.slice(0, INITIAL_DISPLAY_COUNT);
+    const hasMoreHoldings = displayPortfolio.holdings.length > INITIAL_DISPLAY_COUNT;
+
     return (
         <div className="p-6 space-y-6 max-w-7xl mx-auto">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-200 flex items-center gap-2">
+                    <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
                         <Briefcase className="w-6 h-6 text-blue-500" />
                         My Portfolio
                     </h1>
                     <div className="flex items-center gap-3 mt-1">
-                        <p className="text-slate-500 text-sm font-mono">
+                        <p className="text-secondary text-sm font-mono">
                             {displayPortfolio.holdings.length} holdings
                         </p>
                         {isConnected && (
-                            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium animate-pulse">
+                            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-medium animate-pulse">
                                 <Activity className="w-3 h-3" />
                                 Live Updates
                             </span>
@@ -143,7 +151,7 @@ export default function Portfolio() {
                     <button
                         onClick={handleRefreshPrices}
                         disabled={isRefreshing || isEmpty}
-                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-colors border border-slate-700 flex items-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-primary rounded-lg transition-colors border border-border flex items-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                         Save Current Prices
@@ -161,10 +169,10 @@ export default function Portfolio() {
 
             {isEmpty ? (
                 // Empty State
-                <div className="bg-slate-900 border border-slate-700 rounded-xl p-12 text-center">
-                    <Briefcase className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-slate-200 mb-2">Portfolio Empty</h3>
-                    <p className="text-slate-400 text-sm mb-6">
+                <div className="bg-surface border border-border rounded-xl p-12 text-center">
+                    <Briefcase className="w-16 h-16 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-primary mb-2">Portfolio Empty</h3>
+                    <p className="text-secondary text-sm mb-6">
                         Start tracking your investments by adding your first holding
                     </p>
                     <button
@@ -180,80 +188,80 @@ export default function Portfolio() {
                     {/* Summary Dashboard */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         {/* Total Value */}
-                        <div className="bg-slate-900 border border-slate-700 rounded-xl p-5 relative overflow-hidden">
+                        <div className="bg-surface border border-border rounded-xl p-5 relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-4 opacity-10">
                                 <DollarSign className="w-12 h-12 text-blue-500" />
                             </div>
                             <div className="flex items-center justify-between mb-2 relative z-10">
-                                <span className="text-xs text-slate-500 uppercase tracking-wider">Total Value</span>
+                                <span className="text-xs text-secondary uppercase tracking-wider">Total Value</span>
                                 <DollarSign className="w-4 h-4 text-blue-400" />
                             </div>
-                            <div className="text-2xl font-bold text-slate-200 font-mono relative z-10">
+                            <div className="text-2xl font-bold text-primary font-mono relative z-10">
                                 ${displayPortfolio.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
                         </div>
 
                         {/* Total Cost */}
-                        <div className="bg-slate-900 border border-slate-700 rounded-xl p-5">
+                        <div className="bg-surface border border-border rounded-xl p-5">
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs text-slate-500 uppercase tracking-wider">Total Cost</span>
-                                <DollarSign className="w-4 h-4 text-slate-400" />
+                                <span className="text-xs text-secondary uppercase tracking-wider">Total Cost</span>
+                                <DollarSign className="w-4 h-4 text-secondary" />
                             </div>
-                            <div className="text-2xl font-bold text-slate-200 font-mono">
+                            <div className="text-2xl font-bold text-primary font-mono">
                                 ${displayPortfolio.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
                         </div>
 
                         {/* Total P/L */}
-                        <div className="bg-slate-900 border border-slate-700 rounded-xl p-5">
+                        <div className="bg-surface border border-border rounded-xl p-5">
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs text-slate-500 uppercase tracking-wider">Total P/L</span>
+                                <span className="text-xs text-secondary uppercase tracking-wider">Total P/L</span>
                                 {displayPortfolio.totalGainLoss >= 0 ? (
-                                    <TrendingUp className="w-4 h-4 text-emerald-400" />
+                                    <TrendingUp className="w-4 h-4 text-emerald-500" />
                                 ) : (
-                                    <TrendingDown className="w-4 h-4 text-red-400" />
+                                    <TrendingDown className="w-4 h-4 text-red-500" />
                                 )}
                             </div>
-                            <div className={`text-2xl font-bold font-mono ${displayPortfolio.totalGainLoss >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            <div className={`text-2xl font-bold font-mono ${displayPortfolio.totalGainLoss >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                 {displayPortfolio.totalGainLoss >= 0 ? '+' : ''}${displayPortfolio.totalGainLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </div>
                         </div>
 
                         {/* Total Return % */}
-                        <div className="bg-slate-900 border border-slate-700 rounded-xl p-5">
+                        <div className="bg-surface border border-border rounded-xl p-5">
                             <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs text-slate-500 uppercase tracking-wider">Return</span>
+                                <span className="text-xs text-secondary uppercase tracking-wider">Return</span>
                                 {displayPortfolio.totalGainLossPercent >= 0 ? (
-                                    <TrendingUp className="w-4 h-4 text-emerald-400" />
+                                    <TrendingUp className="w-4 h-4 text-emerald-500" />
                                 ) : (
-                                    <TrendingDown className="w-4 h-4 text-red-400" />
+                                    <TrendingDown className="w-4 h-4 text-red-500" />
                                 )}
                             </div>
-                            <div className={`text-2xl font-bold font-mono ${displayPortfolio.totalGainLossPercent >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            <div className={`text-2xl font-bold font-mono ${displayPortfolio.totalGainLossPercent >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                 {displayPortfolio.totalGainLossPercent >= 0 ? '+' : ''}{displayPortfolio.totalGainLossPercent.toFixed(2)}%
                             </div>
                         </div>
                     </div>
 
                     {/* Holdings Table */}
-                    <div className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden">
+                    <div className="bg-surface border border-border rounded-xl overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead>
-                                    <tr className="border-b border-slate-700 bg-slate-800/50">
-                                        <th className="text-left px-6 py-4 text-xs text-slate-400 uppercase tracking-wider font-medium">Asset</th>
-                                        <th className="text-right px-6 py-4 text-xs text-slate-400 uppercase tracking-wider font-medium">Quantity</th>
-                                        <th className="text-right px-6 py-4 text-xs text-slate-400 uppercase tracking-wider font-medium">Avg Cost</th>
-                                        <th className="text-right px-6 py-4 text-xs text-slate-400 uppercase tracking-wider font-medium">Current Price</th>
-                                        <th className="text-right px-6 py-4 text-xs text-slate-400 uppercase tracking-wider font-medium">Total Value</th>
-                                        <th className="text-right px-6 py-4 text-xs text-slate-400 uppercase tracking-wider font-medium">P/L</th>
-                                        <th className="text-right px-6 py-4 text-xs text-slate-400 uppercase tracking-wider font-medium">Return</th>
-                                        <th className="text-center px-6 py-4 text-xs text-slate-400 uppercase tracking-wider font-medium">Actions</th>
+                                    <tr className="border-b border-border bg-slate-50 dark:bg-slate-800/50">
+                                        <th className="text-left px-6 py-4 text-xs text-secondary uppercase tracking-wider font-medium">Asset</th>
+                                        <th className="text-right px-6 py-4 text-xs text-secondary uppercase tracking-wider font-medium">Quantity</th>
+                                        <th className="text-right px-6 py-4 text-xs text-secondary uppercase tracking-wider font-medium">Avg Cost</th>
+                                        <th className="text-right px-6 py-4 text-xs text-secondary uppercase tracking-wider font-medium">Current Price</th>
+                                        <th className="text-right px-6 py-4 text-xs text-secondary uppercase tracking-wider font-medium">Total Value</th>
+                                        <th className="text-right px-6 py-4 text-xs text-secondary uppercase tracking-wider font-medium">P/L</th>
+                                        <th className="text-right px-6 py-4 text-xs text-secondary uppercase tracking-wider font-medium">Return</th>
+                                        <th className="text-center px-6 py-4 text-xs text-secondary uppercase tracking-wider font-medium">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {displayPortfolio.holdings.map((holding) => (
-                                        <tr key={holding.id} className={`border-b border-slate-700 last:border-0 hover:bg-slate-800/30 transition-colors ${holding.isLive ? 'bg-blue-500/5' : ''}`}>
+                                    {displayedHoldings.map((holding) => (
+                                        <tr key={holding.id} className={`border-b border-border last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors ${holding.isLive ? 'bg-blue-500/5' : ''}`}>
                                             <td className="px-6 py-4">
                                                 <Link to={`/asset/${holding.market}/${holding.symbol}`} className="flex items-center gap-3 group">
                                                     <AssetIcon
@@ -263,37 +271,37 @@ export default function Portfolio() {
                                                         className="group-hover:scale-110 transition-transform shadow-sm"
                                                     />
                                                     <div>
-                                                        <div className="font-mono font-bold text-slate-200 group-hover:text-blue-400 transition-colors">
+                                                        <div className="font-mono font-bold text-primary group-hover:text-blue-500 transition-colors">
                                                             {holding.symbol}
                                                         </div>
-                                                        <div className="text-xs text-slate-500">{holding.name}</div>
-                                                        <div className="text-xs text-slate-600 capitalize">{holding.market}</div>
+                                                        <div className="text-xs text-secondary">{holding.name}</div>
+                                                        <div className="text-xs text-secondary capitalize">{holding.market}</div>
                                                     </div>
                                                 </Link>
                                             </td>
-                                            <td className="px-6 py-4 text-right font-mono text-slate-200">
+                                            <td className="px-6 py-4 text-right font-mono text-primary">
                                                 {holding.quantity}
                                             </td>
-                                            <td className="px-6 py-4 text-right font-mono text-slate-200">
+                                            <td className="px-6 py-4 text-right font-mono text-primary">
                                                 ${holding.purchasePrice.toFixed(2)}
                                             </td>
-                                            <td className="px-6 py-4 text-right font-mono text-slate-200 transition-colors duration-300">
+                                            <td className="px-6 py-4 text-right font-mono text-primary transition-colors duration-300">
                                                 ${holding.currentPrice.toFixed(2)}
                                             </td>
-                                            <td className="px-6 py-4 text-right font-mono text-slate-200 font-semibold">
+                                            <td className="px-6 py-4 text-right font-mono text-primary font-semibold">
                                                 ${holding.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </td>
-                                            <td className={`px-6 py-4 text-right font-mono ${holding.gainLoss >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                            <td className={`px-6 py-4 text-right font-mono ${holding.gainLoss >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                                 {holding.gainLoss >= 0 ? '+' : ''}${holding.gainLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </td>
-                                            <td className={`px-6 py-4 text-right font-mono font-bold ${holding.gainLossPercent >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                            <td className={`px-6 py-4 text-right font-mono font-bold ${holding.gainLossPercent >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                                 {holding.gainLossPercent >= 0 ? '+' : ''}{holding.gainLossPercent.toFixed(2)}%
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <div className="flex items-center justify-center gap-2">
                                                     <button
                                                         onClick={() => handleRemoveHolding(holding.id)}
-                                                        className="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
+                                                        className="p-2 text-red-400 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors"
                                                         title="Remove Holding"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
@@ -305,14 +313,26 @@ export default function Portfolio() {
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* Show More / Show Less Button */}
+                        {hasMoreHoldings && (
+                            <div className="p-3 border-t border-border bg-slate-50 dark:bg-slate-800/50 text-center">
+                                <button
+                                    onClick={() => setShowAllHoldings(!showAllHoldings)}
+                                    className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                                >
+                                    {showAllHoldings ? 'Show Less' : `Show All (${displayPortfolio.holdings.length})`}
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Analytics Link */}
-                    <div className="bg-blue-900/10 border border-blue-500/30 rounded-xl p-6">
+                    <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-500/30 rounded-xl p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h3 className="font-semibold text-blue-200 mb-1">View Detailed Analytics</h3>
-                                <p className="text-sm text-blue-300/70">
+                                <h3 className="font-semibold text-blue-700 dark:text-blue-200 mb-1">View Detailed Analytics</h3>
+                                <p className="text-sm text-blue-600/70 dark:text-blue-300/70">
                                     See Sharpe Ratio, Volatility, Beta, and correlation analysis for your portfolio
                                 </p>
                             </div>

@@ -144,18 +144,18 @@ export default function Dashboard() {
     const { time, date } = getCurrentTime();
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-4 md:p-6">
-            <div className="max-w-[1920px] mx-auto space-y-6">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-3 sm:p-4 md:p-6">
+            <div className="max-w-[1920px] mx-auto space-y-4 sm:space-y-6">
 
                 {/* Header */}
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
-                        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                        <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
                             MarketVue PRO
                         </h1>
                         <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{date}</p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="hidden sm:flex items-center gap-3">
                         <div className="px-4 py-2 bg-slate-900/5 dark:bg-white/5 rounded-lg border border-slate-200 dark:border-slate-700">
                             <div className="flex items-center gap-2 text-sm">
                                 <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -167,15 +167,15 @@ export default function Dashboard() {
 
                 {/* Market Overview Cards */}
                 <div>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Market Overview</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mb-4">Market Overview</h2>
+                    <div className="mobile-scroll-snap md:grid md:grid-cols-3 md:gap-4">
                         {/* Stocks */}
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 hover:shadow-xl transition-all duration-300 hover:scale-105">
+                        <div className="min-w-[260px] md:min-w-0 bg-white dark:bg-slate-800 rounded-2xl p-5 md:p-6 border border-slate-200 dark:border-slate-700 hover:shadow-xl transition-all duration-300 active:scale-[0.98] md:hover:scale-105">
                             <div className="flex items-center justify-between mb-4">
                                 <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">Stocks</span>
                                 <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                             </div>
-                            <div className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+                            <div className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-2">
                                 {formatMarketCap(marketOverview.stocks.total)}
                             </div>
                             <div className={`flex items-center gap-1 text-sm font-semibold ${marketOverview.stocks.change >= 0
@@ -187,12 +187,12 @@ export default function Dashboard() {
                         </div>
 
                         {/* Crypto */}
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 hover:shadow-xl transition-all duration-300 hover:scale-105">
+                        <div className="min-w-[260px] md:min-w-0 bg-white dark:bg-slate-800 rounded-2xl p-5 md:p-6 border border-slate-200 dark:border-slate-700 hover:shadow-xl transition-all duration-300 active:scale-[0.98] md:hover:scale-105">
                             <div className="flex items-center justify-between mb-4">
                                 <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">Crypto</span>
                                 <Wallet className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                             </div>
-                            <div className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+                            <div className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-2">
                                 {formatMarketCap(marketOverview.crypto.total)}
                             </div>
                             <div className={`flex items-center gap-1 text-sm font-semibold ${marketOverview.crypto.change >= 0
@@ -204,12 +204,12 @@ export default function Dashboard() {
                         </div>
 
                         {/* Commodities */}
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 hover:shadow-xl transition-all duration-300 hover:scale-105">
+                        <div className="min-w-[260px] md:min-w-0 bg-white dark:bg-slate-800 rounded-2xl p-5 md:p-6 border border-slate-200 dark:border-slate-700 hover:shadow-xl transition-all duration-300 active:scale-[0.98] md:hover:scale-105">
                             <div className="flex items-center justify-between mb-4">
                                 <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">Commodity</span>
                                 <Zap className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                             </div>
-                            <div className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+                            <div className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-2">
                                 {formatMarketCap(marketOverview.commodities.total)}
                             </div>
                             <div className={`flex items-center gap-1 text-sm font-semibold ${marketOverview.commodities.change >= 0
@@ -233,7 +233,7 @@ export default function Dashboard() {
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
                         {categories.map((category) => {
                             const Icon = category.icon;
                             return (
@@ -354,7 +354,7 @@ export default function Dashboard() {
                                 <Link
                                     key={`${asset.symbol}-${index}`}
                                     to={`/asset/${asset.market}/${asset.symbol}`}
-                                    className={`group snap-start flex-shrink-0 w-56 relative bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700/60 p-4 hover:border-${accentColor}-400 dark:hover:border-${accentColor}-500 hover:shadow-xl ${glowColor} transition-all duration-300 hover:-translate-y-1`}
+                                    className={`group snap-start flex-shrink-0 w-44 sm:w-52 md:w-56 relative bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 rounded-xl border border-slate-200/80 dark:border-slate-700/60 p-3 sm:p-4 hover:border-${accentColor}-400 dark:hover:border-${accentColor}-500 hover:shadow-xl ${glowColor} transition-all duration-300 hover:-translate-y-1`}
                                 >
                                     {/* Rank Badge */}
                                     <div className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
@@ -417,7 +417,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Quick Actions */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                     <Link
                         to="/portfolio"
                         className="group bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl p-6 text-white hover:shadow-2xl transition-all duration-300 hover:scale-105"

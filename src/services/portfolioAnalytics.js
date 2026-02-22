@@ -4,7 +4,7 @@
  */
 
 import { getHistoricalPrices } from './historicalPriceService';
-import { calculateDailyReturns, calculateCorrelation } from './analysisService';
+import { calculateDailyReturns, calculateCorrelation, alignAndFillHistory } from './analysisService';
 
 /**
  * Calculate daily portfolio returns over a time period
@@ -38,21 +38,36 @@ export async function calculatePortfolioReturns(holdings, days = 30) {
         const sortedDates = Array.from(allDates).sort();
 
         // Calculate portfolio value for each date
+        let lastKnownPrices = {};
+
         const portfolioValues = sortedDates.map(date => {
             let totalValue = 0;
+            let hasData = false;
 
             historicalData.forEach(asset => {
                 const priceData = asset.history.find(h => h.date.startsWith(date));
+
                 if (priceData) {
+                    // Update last known price
+                    lastKnownPrices[asset.symbol] = priceData.close;
                     totalValue += priceData.close * asset.quantity;
+                    hasData = true;
+                } else if (lastKnownPrices[asset.symbol]) {
+                    // Use last known price if no data for today (e.g. weekend for stocks)
+                    totalValue += lastKnownPrices[asset.symbol] * asset.quantity;
+                    hasData = true;
                 }
             });
+
+            // If we have no data at all for this date (and no history), skip
+            // But if we have at least one asset with data (or history), we calculate value
+            if (!hasData) return null;
 
             return {
                 date,
                 portfolioValue: totalValue
             };
-        }).filter(pv => pv.portfolioValue > 0);
+        }).filter(pv => pv !== null && pv.portfolioValue > 0);
 
         // Calculate daily returns
         const returns = [];
@@ -240,8 +255,7 @@ export async function calculateCorrelationMatrix(holdings, days = 90) {
                 const history = await getHistoricalPrices(holding.symbol, days, holding.market);
                 return {
                     symbol: holding.symbol,
-                    prices: history.map(h => h.close),
-                    returns: calculateDailyReturns(history.map(h => h.close))
+                    history: history
                 };
             })
         );
@@ -251,10 +265,34 @@ export async function calculateCorrelationMatrix(holdings, days = 90) {
 
         for (let i = 0; i < historicalData.length; i++) {
             for (let j = 0; j < historicalData.length; j++) {
+                // Diagonal is always 1
+                if (i === j) {
+                    correlations.push({
+                        asset1: historicalData[i].symbol,
+                        asset2: historicalData[j].symbol,
+                        correlation: 1.0,
+                        row: i,
+                        col: j
+                    });
+                    continue;
+                }
+
+                // Optimization: Correlation(A,B) = Correlation(B,A). 
+                // But specifically for the heatmap grid we might want to calc all or fill symmetrically.
+                // For now, let's calculate everything to be safe/simple, or just check if j > i?
+                // The UI maps slice(0, 16) which implies a 4x4 grid. It expects all pairs.
+
                 const asset1 = historicalData[i];
                 const asset2 = historicalData[j];
 
-                const correlation = i === j ? 1.0 : calculateCorrelation(asset1.returns, asset2.returns);
+                // Align history before calculating returns
+                const { aligned1, aligned2 } = alignAndFillHistory(asset1.history, asset2.history);
+
+                // Calculate returns on aligned data
+                const returns1 = calculateDailyReturns(aligned1);
+                const returns2 = calculateDailyReturns(aligned2);
+
+                const correlation = calculateCorrelation(returns1, returns2);
 
                 correlations.push({
                     asset1: asset1.symbol,

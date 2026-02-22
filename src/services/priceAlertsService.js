@@ -1,13 +1,23 @@
 /**
- * Price Alerts Service
- * Uses Firestore for authenticated users, localStorage for guests.
+ * Price Alerts Service — Subcollection-based
+ * Each alert is a separate Firestore document in users/{userId}/priceAlerts/{alertId}
+ * Uses localStorage for guests (no userId).
  */
 
-import * as userDataService from './userDataService';
+import { db } from '../config/firebase';
+import {
+    collection, doc, getDocs, addDoc, setDoc, deleteDoc, writeBatch
+} from 'firebase/firestore';
 
 const STORAGE_KEY = 'marketvue_price_alerts';
 
-// ─── Check for triggered alerts ──────────────────────────────
+// ─── Subcollection helper ────────────────────────────────────
+
+function getAlertsCol(userId) {
+    return collection(db, 'users', userId, 'priceAlerts');
+}
+
+// ─── Check for triggered alerts (pure logic, no DB) ──────────
 
 export const checkPriceAlerts = (marketData, activeAlerts) => {
     const notifications = [];
@@ -69,42 +79,74 @@ export const checkPriceAlerts = (marketData, activeAlerts) => {
     return { notifications, updatedAlerts: hasUpdates ? updatedAlerts : null };
 };
 
-// ─── CRUD operations (Firestore or localStorage) ────────────
+// ─── CRUD operations ─────────────────────────────────────────
 
+/**
+ * Add a new price alert
+ */
 export const addPriceAlert = async (alert, userId) => {
     const newAlert = {
-        id: Date.now(),
+        id: Date.now().toString(),
         created_at: Date.now(),
         triggered: false,
         ...alert
     };
 
     if (userId) {
-        return await userDataService.addPriceAlert(userId, alert);
+        try {
+            const alertRef = doc(db, 'users', userId, 'priceAlerts', newAlert.id);
+            await setDoc(alertRef, newAlert);
+            return newAlert;
+        } catch (error) {
+            console.error('Error adding price alert:', error);
+            throw error;
+        }
     }
 
+    // Guest fallback
     const alerts = getPriceAlertsLocal();
     alerts.push(newAlert);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(alerts));
     return newAlert;
 };
 
+/**
+ * Get all price alerts
+ */
 export const getPriceAlerts = async (userId) => {
     if (userId) {
-        return await userDataService.getPriceAlerts(userId);
+        try {
+            const snapshot = await getDocs(getAlertsCol(userId));
+            return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (error) {
+            console.error('Error fetching price alerts:', error);
+            return [];
+        }
     }
     return getPriceAlertsLocal();
 };
 
-// Synchronous local-only version (for useWebSocket fallback)
+/**
+ * Synchronous local-only version (for useWebSocket fallback)
+ */
 export const getPriceAlertsLocal = () => {
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored ? JSON.parse(stored) : [];
 };
 
+/**
+ * Delete a single price alert
+ */
 export const deletePriceAlert = async (id, userId) => {
     if (userId) {
-        return await userDataService.deletePriceAlert(userId, id);
+        try {
+            const alertRef = doc(db, 'users', userId, 'priceAlerts', String(id));
+            await deleteDoc(alertRef);
+            return await getPriceAlerts(userId);
+        } catch (error) {
+            console.error('Error deleting price alert:', error);
+            throw error;
+        }
     }
     const alerts = getPriceAlertsLocal();
     const filtered = alerts.filter(a => a.id !== id);
@@ -112,18 +154,44 @@ export const deletePriceAlert = async (id, userId) => {
     return filtered;
 };
 
+/**
+ * Delete all price alerts
+ */
 export const deleteAllPriceAlerts = async (userId) => {
     if (userId) {
-        return await userDataService.deleteAllPriceAlerts(userId);
+        try {
+            const batch = writeBatch(db);
+            const snapshot = await getDocs(getAlertsCol(userId));
+            snapshot.docs.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+            return [];
+        } catch (error) {
+            console.error('Error deleting all price alerts:', error);
+            return [];
+        }
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
     return [];
 };
 
-// Save alerts (used by WebSocket when alerts trigger)
+/**
+ * Save/update alerts — used by WebSocket when triggered alerts need to be persisted
+ * For Firestore: batch update only triggered alerts
+ * For guests: overwrite entire array
+ */
 export const savePriceAlerts = async (alerts, userId) => {
     if (userId) {
-        await userDataService.savePriceAlerts(userId, alerts);
+        try {
+            const batch = writeBatch(db);
+            for (const alert of alerts) {
+                const alertId = String(alert.id);
+                const alertRef = doc(db, 'users', userId, 'priceAlerts', alertId);
+                batch.set(alertRef, { ...alert, id: alertId });
+            }
+            await batch.commit();
+        } catch (error) {
+            console.error('Error batch saving price alerts:', error);
+        }
     } else {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(alerts));
     }

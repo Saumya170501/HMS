@@ -4,6 +4,7 @@ import { TrendingUp, Coins, Pickaxe, LayoutGrid, Star, Search, BarChart3 } from 
 import apiManager from '../services/apiManager';
 import { useAuth } from '../context/AuthContext';
 import { watchlistService } from '../services/watchlistService';
+import { getSymbolFromId } from '../config/cryptoMapping';
 import AssetIcon from '../components/AssetIcon';
 
 export default function Watchlist() {
@@ -11,6 +12,7 @@ export default function Watchlist() {
     const [watchlist, setWatchlist] = useState([]);
     const [watchlistData, setWatchlistData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [showAll, setShowAll] = useState(false);
 
     useEffect(() => {
         let unsubscribe = () => { };
@@ -46,7 +48,17 @@ export default function Watchlist() {
             const allAssets = [...stocks, ...crypto, ...commodities];
 
             const enriched = list.map(item => {
-                const asset = allAssets.find(a => a.symbol === item.symbol);
+                // Try to find by symbol (case insensitive)
+                let asset = allAssets.find(a => a.symbol.toUpperCase() === item.symbol?.toUpperCase());
+
+                // Fallback: If it's crypto and we have an ID like 'bitcoin', map it back to symbol
+                if (!asset && item.id) {
+                    const symbolFromId = getSymbolFromId(item.id);
+                    if (symbolFromId) {
+                        asset = allAssets.find(a => a.symbol.toUpperCase() === symbolFromId.toUpperCase());
+                    }
+                }
+
                 return asset ? { ...item, ...asset } : item;
             }).filter(item => item.price);
 
@@ -58,19 +70,20 @@ export default function Watchlist() {
         }
     };
 
-    const removeFromWatchlist = async (symbol) => {
+    const removeFromWatchlist = async (asset) => {
+        const symbolOrId = asset.symbol || asset.id;
         if (currentUser) {
             try {
-                await watchlistService.removeFromWatchlist(currentUser.uid, symbol);
+                await watchlistService.removeFromWatchlist(currentUser.uid, symbolOrId);
                 // State updates via subscription
             } catch (error) {
                 console.error("Failed to remove from watchlist:", error);
             }
         } else {
-            const updated = watchlist.filter(w => w.symbol !== symbol);
+            const updated = watchlist.filter(w => w.symbol !== asset.symbol);
             localStorage.setItem('watchlist', JSON.stringify(updated));
             setWatchlist(updated);
-            setWatchlistData(watchlistData.filter(w => w.symbol !== symbol));
+            setWatchlistData(watchlistData.filter(w => w.symbol !== asset.symbol));
         }
     };
 
@@ -110,74 +123,88 @@ export default function Watchlist() {
             {/* Watchlist Table */}
             {watchlistData.length > 0 ? (
                 <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="border-b border-border bg-slate-50 dark:bg-slate-800/50">
-                                <th className="text-left px-4 py-3 text-xs text-secondary uppercase tracking-wider font-medium">Asset</th>
-                                <th className="text-right px-4 py-3 text-xs text-secondary uppercase tracking-wider font-medium">Price</th>
-                                <th className="text-right px-4 py-3 text-xs text-secondary uppercase tracking-wider font-medium">24h Change</th>
-                                <th className="text-right px-4 py-3 text-xs text-secondary uppercase tracking-wider font-medium">Market Cap</th>
-                                <th className="text-center px-4 py-3 text-xs text-secondary uppercase tracking-wider font-medium">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {watchlistData.map((asset) => (
-                                <tr key={asset.symbol} className="border-b border-border last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                                    <td className="px-4 py-4">
-                                        <Link to={`/asset/${asset.market}/${asset.symbol}`} className="flex items-center gap-3 group">
-                                            <AssetIcon
-                                                symbol={asset.symbol}
-                                                market={asset.market}
-                                                size={32}
-                                                className="group-hover:scale-110 transition-transform shadow-sm"
-                                            />
-                                            <div>
-                                                <div className="font-mono font-bold text-primary group-hover:text-blue-500 transition-colors">{asset.symbol}</div>
-                                                <div className="text-xs text-secondary">{asset.name}</div>
-                                            </div>
-                                        </Link>
-                                    </td>
-                                    <td className="px-4 py-4 text-right font-mono text-primary">
-                                        ${asset.price?.toLocaleString()}
-                                    </td>
-                                    <td className={`px-4 py-4 text-right font-mono ${asset.change >= 0 ? 'text-green-600 dark:text-gain-bright' : 'text-red-600 dark:text-loss-bright'}`}>
-                                        {asset.change >= 0 ? '+' : ''}{asset.change?.toFixed(2)}%
-                                    </td>
-                                    <td className="px-4 py-4 text-right font-mono text-secondary">
-                                        {asset.marketCap >= 1e12
-                                            ? `$${(asset.marketCap / 1e12).toFixed(2)}T`
-                                            : asset.marketCap >= 1e9
-                                                ? `$${(asset.marketCap / 1e9).toFixed(2)}B`
-                                                : `$${(asset.marketCap / 1e6).toFixed(2)}M`
-                                        }
-                                    </td>
-                                    <td className="px-4 py-4 text-center">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <Link
-                                                to={`/asset/${asset.market}/${asset.symbol}`}
-                                                className="p-2 text-secondary hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
-                                                title="View Details"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                </svg>
-                                            </Link>
-                                            <button
-                                                onClick={() => removeFromWatchlist(asset.symbol)}
-                                                className="p-2 text-secondary hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                                                title="Remove from Watchlist"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </td>
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="border-b border-border bg-slate-50 dark:bg-slate-800/50">
+                                    <th className="text-left px-4 py-3 text-xs text-secondary uppercase tracking-wider font-medium">Asset</th>
+                                    <th className="text-right px-4 py-3 text-xs text-secondary uppercase tracking-wider font-medium">Price</th>
+                                    <th className="text-right px-4 py-3 text-xs text-secondary uppercase tracking-wider font-medium">24h Change</th>
+                                    <th className="text-right px-4 py-3 text-xs text-secondary uppercase tracking-wider font-medium">Market Cap</th>
+                                    <th className="text-center px-4 py-3 text-xs text-secondary uppercase tracking-wider font-medium">Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {(showAll ? watchlistData : watchlistData.slice(0, 5)).map((asset) => (
+                                    <tr key={asset.symbol} className="border-b border-border last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                                        <td className="px-4 py-4">
+                                            <Link to={`/asset/${asset.market}/${asset.symbol}`} className="flex items-center gap-3 group">
+                                                <AssetIcon
+                                                    symbol={asset.symbol}
+                                                    market={asset.market}
+                                                    size={32}
+                                                    className="group-hover:scale-110 transition-transform shadow-sm"
+                                                />
+                                                <div>
+                                                    <div className="font-mono font-bold text-primary group-hover:text-blue-500 transition-colors">{asset.symbol}</div>
+                                                    <div className="text-xs text-secondary">{asset.name}</div>
+                                                </div>
+                                            </Link>
+                                        </td>
+                                        <td className="px-4 py-4 text-right font-mono text-primary">
+                                            ${asset.price?.toLocaleString()}
+                                        </td>
+                                        <td className={`px-4 py-4 text-right font-mono ${asset.change >= 0 ? 'text-green-600 dark:text-gain-bright' : 'text-red-600 dark:text-loss-bright'}`}>
+                                            {asset.change >= 0 ? '+' : ''}{asset.change?.toFixed(2)}%
+                                        </td>
+                                        <td className="px-4 py-4 text-right font-mono text-secondary">
+                                            {asset.marketCap >= 1e12
+                                                ? `$${(asset.marketCap / 1e12).toFixed(2)}T`
+                                                : asset.marketCap >= 1e9
+                                                    ? `$${(asset.marketCap / 1e9).toFixed(2)}B`
+                                                    : `$${(asset.marketCap / 1e6).toFixed(2)}M`
+                                            }
+                                        </td>
+                                        <td className="px-4 py-4 text-center">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <Link
+                                                    to={`/asset/${asset.market}/${asset.symbol}`}
+                                                    className="p-2 text-secondary hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                                                    title="View Details"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    </svg>
+                                                </Link>
+                                                <button
+                                                    onClick={() => removeFromWatchlist(asset)}
+                                                    className="p-2 text-secondary hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                                    title="Remove from Watchlist"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Show More Button */}
+                    {watchlistData.length > 5 && (
+                        <div className="p-3 border-t border-border bg-slate-50 dark:bg-slate-800/50 text-center">
+                            <button
+                                onClick={() => setShowAll(!showAll)}
+                                className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                            >
+                                {showAll ? 'Show Less' : `Show All (${watchlistData.length})`}
+                            </button>
+                        </div>
+                    )}
                 </div>
             ) : (
                 <div className="bg-surface border border-border rounded-xl p-12 text-center shadow-sm">

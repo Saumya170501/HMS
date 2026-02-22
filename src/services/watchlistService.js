@@ -1,21 +1,27 @@
 import { db } from '../config/firebase';
-import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, onSnapshot } from 'firebase/firestore';
+import {
+    collection, doc, getDoc, getDocs, setDoc, deleteDoc, onSnapshot
+} from 'firebase/firestore';
+import { getCoinGeckoId } from '../config/cryptoMapping';
+
+/**
+ * Get the watchlist subcollection reference
+ */
+function getWatchlistCol(userId) {
+    return collection(db, 'users', userId, 'watchlist');
+}
 
 export const watchlistService = {
     /**
-     * Get watchlist for a user
+     * Get all watchlist items for a user
      * @param {string} userId
      * @returns {Promise<Array>} Array of watchlist items
      */
     async getWatchlist(userId) {
         if (!userId) return [];
         try {
-            const docRef = doc(db, 'users', userId);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists()) {
-                return docSnap.data().watchlist || [];
-            }
-            return [];
+            const snapshot = await getDocs(getWatchlistCol(userId));
+            return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         } catch (error) {
             console.error('Error fetching watchlist:', error);
             return [];
@@ -28,23 +34,16 @@ export const watchlistService = {
      * @param {object} item { symbol, market, name }
      */
     async addToWatchlist(userId, item) {
-        if (!userId) return;
+        if (!userId || !item?.symbol) return;
+        const normalizedSymbol = item.symbol.toUpperCase();
         try {
-            const docRef = doc(db, 'users', userId);
-            // Check if doc exists first, if not create it
-            const docSnap = await getDoc(docRef);
-
-            if (!docSnap.exists()) {
-                await setDoc(docRef, {
-                    watchlist: [item],
-                    updatedAt: new Date().toISOString()
-                }, { merge: true });
-            } else {
-                await updateDoc(docRef, {
-                    watchlist: arrayUnion(item),
-                    updatedAt: new Date().toISOString()
-                });
-            }
+            const docRef = doc(db, 'users', userId, 'watchlist', normalizedSymbol);
+            await setDoc(docRef, {
+                symbol: normalizedSymbol,
+                market: item.market,
+                name: item.name || item.symbol,
+                addedAt: new Date().toISOString()
+            });
         } catch (error) {
             console.error('Error adding to watchlist:', error);
             throw error;
@@ -57,21 +56,23 @@ export const watchlistService = {
      * @param {string} symbol
      */
     async removeFromWatchlist(userId, symbol) {
-        if (!userId) return;
+        if (!userId || !symbol) return;
+        const upper = symbol.toUpperCase();
+        const lower = symbol.toLowerCase();
+        const coinGeckoId = getCoinGeckoId(symbol);
+
         try {
-            const docRef = doc(db, 'users', userId);
-            const docSnap = await getDoc(docRef);
+            // Delete standard uppercase doc
+            await deleteDoc(doc(db, 'users', userId, 'watchlist', upper));
 
-            if (docSnap.exists()) {
-                const currentWatchlist = docSnap.data().watchlist || [];
-                const itemToRemove = currentWatchlist.find(item => item.symbol === symbol);
+            // Cleanup lowercase doc
+            if (upper !== lower) {
+                await deleteDoc(doc(db, 'users', userId, 'watchlist', lower));
+            }
 
-                if (itemToRemove) {
-                    await updateDoc(docRef, {
-                        watchlist: arrayRemove(itemToRemove),
-                        updatedAt: new Date().toISOString()
-                    });
-                }
+            // Cleanup legacy CoinGecko ID doc (e.g., 'bitcoin')
+            if (coinGeckoId && coinGeckoId !== lower && coinGeckoId !== upper) {
+                await deleteDoc(doc(db, 'users', userId, 'watchlist', coinGeckoId));
             }
         } catch (error) {
             console.error('Error removing from watchlist:', error);
@@ -80,21 +81,48 @@ export const watchlistService = {
     },
 
     /**
+     * Check if an asset is in the watchlist
+     * @param {string} userId
+     * @param {string} symbol
+     */
+    async isInWatchlist(userId, symbol) {
+        if (!userId || !symbol) return false;
+        const upper = symbol.toUpperCase();
+        const lower = symbol.toLowerCase();
+        const coinGeckoId = getCoinGeckoId(symbol);
+
+        try {
+            // Check uppercase
+            const upperSnap = await getDoc(doc(db, 'users', userId, 'watchlist', upper));
+            if (upperSnap.exists()) return true;
+
+            // Check lowercase
+            if (upper !== lower) {
+                const lowerSnap = await getDoc(doc(db, 'users', userId, 'watchlist', lower));
+                if (lowerSnap.exists()) return true;
+            }
+
+            // Check legacy CoinGecko ID
+            if (coinGeckoId && coinGeckoId !== lower && coinGeckoId !== upper) {
+                const legacySnap = await getDoc(doc(db, 'users', userId, 'watchlist', coinGeckoId));
+                if (legacySnap.exists()) return true;
+            }
+
+            return false;
+        } catch {
+            return false;
+        }
+    },
+
+    /**
      * Subscribe to real-time watchlist updates
-     * @param {string} userId 
-     * @param {function} callback 
-     * @returns {function} unsubscribe function
      */
     subscribeToWatchlist(userId, callback) {
         if (!userId) return () => { };
 
-        const docRef = doc(db, 'users', userId);
-        return onSnapshot(docRef, (doc) => {
-            if (doc.exists()) {
-                callback(doc.data().watchlist || []);
-            } else {
-                callback([]);
-            }
+        return onSnapshot(getWatchlistCol(userId), (snapshot) => {
+            const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            callback(items);
         }, (error) => {
             console.error('Watchlist subscription error:', error);
         });

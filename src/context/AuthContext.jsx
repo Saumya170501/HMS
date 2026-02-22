@@ -5,7 +5,13 @@ import {
     signOut,
     onAuthStateChanged,
     signInWithPopup,
-    sendEmailVerification
+    sendEmailVerification,
+    updateProfile,
+    updateEmail,
+    updatePassword,
+    reauthenticateWithCredential,
+    EmailAuthProvider,
+    verifyBeforeUpdateEmail
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, googleProvider, db } from '../config/firebase';
@@ -85,6 +91,67 @@ export function AuthProvider({ children }) {
         return sendEmailVerification(user);
     }
 
+    // Re-authenticate user (required before sensitive changes)
+    async function reauthenticate(currentPassword) {
+        if (!auth.currentUser) throw new Error('No user logged in');
+        const credential = EmailAuthProvider.credential(
+            auth.currentUser.email,
+            currentPassword
+        );
+        return reauthenticateWithCredential(auth.currentUser, credential);
+    }
+
+    // Update display name (no re-auth needed)
+    async function updateUsername(newDisplayName) {
+        if (!auth.currentUser) throw new Error('No user logged in');
+        await updateProfile(auth.currentUser, { displayName: newDisplayName });
+        // Also sync to Firestore
+        try {
+            const { updateDoc, doc } = await import('firebase/firestore');
+            await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+                name: newDisplayName
+            });
+        } catch (e) {
+            console.warn('Firestore sync failed for username update', e);
+        }
+    }
+
+    // Update email — requires re-auth, sends verification to new address
+    async function updateUserEmail(newEmail, currentPassword) {
+        console.log('[Auth] Starting email update flow...');
+        await reauthenticate(currentPassword);
+        console.log('[Auth] Re-authentication successful');
+
+        const actionCodeSettings = {
+            url: window.location.origin + '/dashboard',
+            handleCodeInApp: false,
+        };
+
+        try {
+            // Primary: verifyBeforeUpdateEmail sends a link to the NEW email
+            await verifyBeforeUpdateEmail(auth.currentUser, newEmail, actionCodeSettings);
+            console.log('[Auth] verifyBeforeUpdateEmail succeeded — verification email sent to:', newEmail);
+        } catch (primaryError) {
+            console.warn('[Auth] verifyBeforeUpdateEmail failed, trying fallback:', primaryError);
+            // Fallback: directly update email then send verification
+            try {
+                await updateEmail(auth.currentUser, newEmail);
+                console.log('[Auth] updateEmail succeeded, sending verification email...');
+                await sendEmailVerification(auth.currentUser, actionCodeSettings);
+                console.log('[Auth] Verification email sent to:', newEmail);
+            } catch (fallbackError) {
+                console.error('[Auth] Fallback email update also failed:', fallbackError);
+                throw fallbackError;
+            }
+        }
+    }
+
+    // Update password — requires re-auth
+    async function updateUserPassword(newPassword, currentPassword) {
+        await reauthenticate(currentPassword);
+        await updatePassword(auth.currentUser, newPassword);
+    }
+
     async function googleSignIn() {
         try {
             const result = await signInWithPopup(auth, googleProvider);
@@ -132,7 +199,11 @@ export function AuthProvider({ children }) {
         login,
         logout,
         googleSignIn,
-        resendVerificationEmail
+        resendVerificationEmail,
+        reauthenticate,
+        updateUsername,
+        updateUserEmail,
+        updateUserPassword,
     };
 
     return (

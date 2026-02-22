@@ -55,13 +55,13 @@ export default function AddHoldingModal({ onClose, onAdd }) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-            <div className="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-lg mx-4 shadow-2xl">
+            <div className="bg-surface border border-border rounded-xl w-full max-w-lg mx-4 shadow-2xl">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-slate-700">
-                    <h2 className="text-xl font-bold text-slate-200">Add Holding</h2>
+                <div className="flex items-center justify-between p-6 border-b border-border">
+                    <h2 className="text-xl font-bold text-primary">Add Holding</h2>
                     <button
                         onClick={onClose}
-                        className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
+                        className="p-2 text-secondary hover:text-primary hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors"
                     >
                         <X className="w-5 h-5" />
                     </button>
@@ -78,7 +78,7 @@ export default function AddHoldingModal({ onClose, onAdd }) {
 
                     {/* Market Selection */}
                     <div>
-                        <label className="block text-sm text-slate-400 mb-2 font-medium">
+                        <label className="block text-sm text-secondary mb-2 font-medium">
                             Step 1: Choose Market
                         </label>
                         <div className="grid grid-cols-3 gap-2">
@@ -97,7 +97,7 @@ export default function AddHoldingModal({ onClose, onAdd }) {
                                     }}
                                     className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl font-medium text-sm transition-all ${selectedMarket === market.value
                                         ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
-                                        : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                                        : 'bg-slate-100 dark:bg-slate-800 text-secondary hover:text-primary hover:bg-slate-200 dark:hover:bg-slate-700'
                                         }`}
                                 >
                                     <market.icon className={`w-5 h-5 ${selectedMarket === market.value ? 'text-white' : market.color}`} />
@@ -109,7 +109,7 @@ export default function AddHoldingModal({ onClose, onAdd }) {
 
                     {/* Asset Selection */}
                     <div>
-                        <label className="block text-sm text-slate-400 mb-2 font-medium">
+                        <label className="block text-sm text-secondary mb-2 font-medium">
                             Step 2: Select Asset
                         </label>
                         <select
@@ -118,7 +118,7 @@ export default function AddHoldingModal({ onClose, onAdd }) {
                                 setSelectedAsset(e.target.value);
                                 setPurchasePrice('');
                             }}
-                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-sm text-slate-200 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full bg-slate-100 dark:bg-slate-800 border border-border rounded-lg px-4 py-3 text-sm text-primary font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required
                         >
                             <option value="">Select an asset</option>
@@ -132,17 +132,17 @@ export default function AddHoldingModal({ onClose, onAdd }) {
 
                     {/* Selected Asset Preview */}
                     {selectedAssetData && (
-                        <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-border">
                             <div className="flex items-center justify-between mb-1">
-                                <span className="font-mono font-bold text-lg text-slate-200">
+                                <span className="font-mono font-bold text-lg text-primary">
                                     {selectedAssetData.symbol}
                                 </span>
-                                <span className={`font-mono ${selectedAssetData.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                <span className={`font-mono ${selectedAssetData.change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                     {selectedAssetData.change >= 0 ? '+' : ''}{selectedAssetData.change?.toFixed(2)}%
                                 </span>
                             </div>
-                            <div className="text-sm text-slate-500 mb-2">{selectedAssetData.name}</div>
-                            <div className="text-xl font-mono text-slate-200">
+                            <div className="text-sm text-secondary mb-2">{selectedAssetData.name}</div>
+                            <div className="text-xl font-mono text-primary">
                                 ${selectedAssetData.price?.toLocaleString()}
                             </div>
                         </div>
@@ -150,7 +150,7 @@ export default function AddHoldingModal({ onClose, onAdd }) {
 
                     {/* Quantity */}
                     <div>
-                        <label className="block text-sm text-slate-400 mb-2 font-medium">
+                        <label className="block text-sm text-secondary mb-2 font-medium">
                             Step 3: Enter Quantity
                         </label>
                         <input
@@ -160,19 +160,19 @@ export default function AddHoldingModal({ onClose, onAdd }) {
                             value={quantity}
                             onChange={(e) => setQuantity(e.target.value)}
                             placeholder="e.g., 10"
-                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-sm text-slate-200 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full bg-slate-100 dark:bg-slate-800 border border-border rounded-lg px-4 py-3 text-sm text-primary font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required
                         />
                     </div>
 
                     {/* Purchase Price (Optional) */}
                     <div>
-                        <label className="block text-sm text-slate-400 mb-2 font-medium">
+                        <label className="block text-sm text-secondary mb-2 font-medium">
                             Purchase Price (Optional)
-                            <span className="text-slate-600 ml-2">Defaults to current price</span>
+                            <span className="text-secondary/70 ml-2">Defaults to current price</span>
                         </label>
                         <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">$</span>
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary">$</span>
                             <input
                                 type="number"
                                 step="any"
@@ -180,14 +180,14 @@ export default function AddHoldingModal({ onClose, onAdd }) {
                                 value={purchasePrice}
                                 onChange={(e) => setPurchasePrice(e.target.value)}
                                 placeholder={selectedAssetData?.price.toString() || '0.00'}
-                                className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-4 py-3 text-sm text-slate-200 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full bg-slate-100 dark:bg-slate-800 border border-border rounded-lg pl-8 pr-4 py-3 text-sm text-primary font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
                     </div>
 
                     {/* Purchase Date (Optional) */}
                     <div>
-                        <label className="block text-sm text-slate-400 mb-2 font-medium">
+                        <label className="block text-sm text-secondary mb-2 font-medium">
                             Purchase Date (Optional)
                         </label>
                         <input
@@ -195,16 +195,16 @@ export default function AddHoldingModal({ onClose, onAdd }) {
                             value={purchaseDate}
                             onChange={(e) => setPurchaseDate(e.target.value)}
                             max={new Date().toISOString().split('T')[0]}
-                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-sm text-slate-200 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full bg-slate-100 dark:bg-slate-800 border border-border rounded-lg px-4 py-3 text-sm text-primary font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
 
                     {/* Cost Preview */}
                     {quantity && purchasePrice && (
-                        <div className="p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 rounded-lg">
                             <div className="flex items-center justify-between text-sm">
-                                <span className="text-blue-300">Total Cost</span>
-                                <span className="font-mono font-bold text-blue-200 text-lg">
+                                <span className="text-blue-600 dark:text-blue-300">Total Cost</span>
+                                <span className="font-mono font-bold text-blue-700 dark:text-blue-200 text-lg">
                                     ${(parseFloat(quantity) * parseFloat(purchasePrice)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                             </div>
@@ -216,7 +216,7 @@ export default function AddHoldingModal({ onClose, onAdd }) {
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-colors border border-slate-700 font-medium"
+                            className="flex-1 px-4 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-primary rounded-lg transition-colors border border-border font-medium"
                         >
                             Cancel
                         </button>

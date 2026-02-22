@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Sidebar from './components/layout/Sidebar';
 import Navbar from './components/layout/Navbar';
+import BottomNav from './components/layout/BottomNav';
 import Dashboard from './pages/Dashboard';
 import Heatmap from './pages/Heatmap';
 import Compare from './pages/Compare';
@@ -44,23 +45,19 @@ const ProtectedRoute = () => {
     return <Outlet />;
 };
 
-// Application Layout (Sidebar + Navbar)
+// Application Layout (Sidebar + Navbar + BottomNav)
 const AppLayout = () => {
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
-
     return (
         <div className="min-h-screen bg-background text-primary flex transition-colors duration-300">
-            <Sidebar
-                isOpen={isMobileMenuOpen}
-                onClose={() => setIsMobileMenuOpen(false)}
-            />
+            <Sidebar />
             <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
-                <Navbar onMenuClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
-                <main className="flex-1 overflow-y-auto">
+                <Navbar />
+                <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
                     <Outlet />
                 </main>
                 <AlertNotification />
             </div>
+            <BottomNav />
         </div>
     );
 };

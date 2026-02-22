@@ -27,13 +27,13 @@ export default function AssetDetail() {
                 const found = data.find(a => a.symbol === symbol);
                 setAsset(found);
 
-                // Check watchlist
+                // Check watchlist (case-insensitive and ID-aware)
                 if (userId) {
-                    const watchlist = await watchlistService.getWatchlist(userId);
-                    setIsWatchlisted(watchlist.some(w => w.symbol === symbol));
+                    const inWatchlist = await watchlistService.isInWatchlist(userId, symbol);
+                    setIsWatchlisted(inWatchlist);
                 } else {
                     const watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
-                    setIsWatchlisted(watchlist.some(w => w.symbol === symbol));
+                    setIsWatchlisted(watchlist.some(w => w.symbol.toUpperCase() === symbol.toUpperCase()));
                 }
 
                 // Generate chart data
@@ -94,7 +94,7 @@ export default function AssetDetail() {
         } else {
             const watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
             if (isWatchlisted) {
-                const updated = watchlist.filter(w => w.symbol !== symbol);
+                const updated = watchlist.filter(w => w.symbol.toUpperCase() !== symbol.toUpperCase());
                 localStorage.setItem('watchlist', JSON.stringify(updated));
                 setIsWatchlisted(false);
             } else {

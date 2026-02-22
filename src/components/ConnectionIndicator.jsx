@@ -43,7 +43,7 @@ export default function ConnectionIndicator({ isConnected, isLive }) {
                     />
                 )}
             </div>
-            <span className="text-xs text-slate-400 uppercase tracking-wider font-medium">
+            <span className="text-xs text-secondary uppercase tracking-wider font-medium">
                 {status.text}
             </span>
         </div>

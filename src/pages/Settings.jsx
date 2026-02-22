@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import useThemeStore from '../hooks/useThemeStore';
 import {
-    Link, Zap, Download, Palette, RefreshCw, Bell, Key, Settings as SettingsIcon,
-    Moon, Sun, Monitor, Check
+    Link, Zap, Download, Palette, RefreshCw, Bell,
+    Moon, Sun, Monitor, Check, Shield, RotateCcw
 } from 'lucide-react';
 
 
@@ -85,11 +85,100 @@ const Select = ({ label, description, options, value, onChange }) => (
 );
 
 import useSettingsStore from '../hooks/useSettingsStore';
+import useAlertManager from '../hooks/useAlertManager';
+
+/* ============================================================
+   Password Strength Meter
+   ============================================================ */
+function getPasswordStrength(pw) {
+    if (!pw) return { score: 0, label: '', color: '' };
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (pw.length >= 12) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    const levels = [
+        { label: 'Too short', color: 'bg-red-500' },
+        { label: 'Weak', color: 'bg-red-400' },
+        { label: 'Fair', color: 'bg-amber-400' },
+        { label: 'Good', color: 'bg-yellow-400' },
+        { label: 'Strong', color: 'bg-emerald-400' },
+        { label: 'Very Strong', color: 'bg-emerald-500' },
+    ];
+    return { score, ...levels[score] };
+}
+
+const PasswordStrengthBar = ({ password }) => {
+    const { score, label, color } = getPasswordStrength(password);
+    if (!password) return null;
+    return (
+        <div className="mt-2">
+            <div className="flex gap-1 mb-1">
+                {[1, 2, 3, 4, 5].map(i => (
+                    <div
+                        key={i}
+                        className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= score ? color : 'bg-slate-200 dark:bg-slate-700'
+                            }`}
+                    />
+                ))}
+            </div>
+            <p className={`text-xs font-medium ${score <= 1 ? 'text-red-500' :
+                score <= 2 ? 'text-amber-500' :
+                    score <= 3 ? 'text-yellow-500' : 'text-emerald-500'
+                }`}>{label}</p>
+        </div>
+    );
+};
+
+/* ============================================================
+   Secure Text Input
+   ============================================================ */
+const SecureInput = ({ label, placeholder, value, onChange, type = 'text', error }) => {
+    const [show, setShow] = useState(false);
+    const isPassword = type === 'password';
+    return (
+        <div>
+            <label className="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1.5">
+                {label}
+            </label>
+            <div className="relative">
+                <input
+                    type={isPassword && !show ? 'password' : 'text'}
+                    value={value}
+                    onChange={e => onChange(e.target.value)}
+                    placeholder={placeholder}
+                    autoComplete={isPassword ? 'current-password' : 'off'}
+                    className={`w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800 border rounded-lg text-sm text-primary placeholder-slate-400 focus:outline-none focus:ring-2 transition-all pr-10 ${error
+                        ? 'border-red-500 focus:ring-red-500/30'
+                        : 'border-slate-200 dark:border-slate-700 focus:ring-blue-500/30 focus:border-blue-500'
+                        }`}
+                />
+                {isPassword && (
+                    <button
+                        type="button"
+                        onClick={() => setShow(s => !s)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                    >
+                        {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                )}
+            </div>
+            {error && <p className="mt-1 text-xs text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{error}</p>}
+        </div>
+    );
+};
+
+
+
+
 
 export default function Settings() {
-    const { settings, updateSetting, updateNotification, resetSettings } = useSettingsStore();
+    const { settings, updateSetting, updateNotification, updateAlertManagement, resetSettings } = useSettingsStore();
+    const { resetAll: resetDismissedAlerts, getStats } = useAlertManager();
     const { theme, setTheme } = useThemeStore();
     const [saved, setSaved] = useState(false);
+    const [resetConfirm, setResetConfirm] = useState(false);
 
     // Save visual feedback wrapper
     const handleSave = () => {
@@ -104,7 +193,7 @@ export default function Settings() {
     };
 
     return (
-        <div className="p-6 space-y-6 max-w-4xl">
+        <div className="p-3 sm:p-4 md:p-6 space-y-6 max-w-4xl pb-28 md:pb-6">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -131,6 +220,7 @@ export default function Settings() {
                     </button>
                 </div>
             </div>
+
 
             {/* Correlation Preferences */}
             <SettingSection
@@ -304,41 +394,118 @@ export default function Settings() {
                 />
             </SettingSection>
 
-            {/* API Configuration */}
+            {/* Alert Management */}
             <SettingSection
-                title={<div className="flex items-center gap-2"><Key className="w-4 h-4" /> API Configuration</div>}
-                description="Configure external data sources"
+                title={<div className="flex items-center gap-2"><Shield className="w-4 h-4" /> Alert Management</div>}
+                description="Control alert types, sensitivity, and dismissal behavior"
             >
-                <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-                    <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm text-secondary">Alpha Vantage API</span>
-                        <span className="text-xs bg-green-500/20 text-green-600 dark:text-green-400 px-2 py-0.5 rounded">Connected</span>
-                    </div>
-                    <p className="text-xs text-secondary">
-                        Using demo key with limited rate (5 calls/min). Add your own key for unlimited access.
-                    </p>
+                {/* Per-type toggles */}
+                <Toggle
+                    label="Divergence Alerts"
+                    description="Notify when asset pairs diverge from historical norms"
+                    checked={settings.alertManagement?.divergenceAlerts ?? true}
+                    onChange={(val) => updateAlertManagement('divergenceAlerts', val)}
+                />
+                <Toggle
+                    label="Hedge Opportunities"
+                    description="Identify natural hedging pairs in your portfolio"
+                    checked={settings.alertManagement?.hedgeOpportunities ?? true}
+                    onChange={(val) => updateAlertManagement('hedgeOpportunities', val)}
+                />
+                <Toggle
+                    label="Volatility Alerts"
+                    description="Detect unusual market volatility events"
+                    checked={settings.alertManagement?.volatilityAlerts ?? true}
+                    onChange={(val) => updateAlertManagement('volatilityAlerts', val)}
+                />
+                <Toggle
+                    label="Alert Sound"
+                    description="Play a notification sound for new alerts"
+                    checked={settings.alertManagement?.soundEnabled ?? true}
+                    onChange={(val) => updateAlertManagement('soundEnabled', val)}
+                />
+
+                {/* Sensitivity */}
+                <div className="mt-4">
+                    <RadioGroup
+                        label="Alert Sensitivity"
+                        options={[
+                            { value: 'low', label: 'Low — Only major divergences (8%+)' },
+                            { value: 'medium', label: 'Medium — Moderate divergences (5%+)' },
+                            { value: 'high', label: 'High — All notable divergences (3%+)' },
+                        ]}
+                        value={settings.alertManagement?.sensitivity || 'medium'}
+                        onChange={(val) => updateAlertManagement('sensitivity', val)}
+                    />
                 </div>
 
-                <div className="bg-slate-100 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-                    <div className="flex items-center gap-2 mb-2">
-                        <span className="text-sm text-secondary">Correlation API Server</span>
-                        <span className="text-xs bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 px-2 py-0.5 rounded">Optional</span>
+                {/* Reappearance Window */}
+                <div className="mt-4">
+                    <Select
+                        label="Dismissed Alert Reappearance"
+                        description="How long before a dismissed alert can reappear if data changes"
+                        options={[
+                            { value: 1, label: '1 day' },
+                            { value: 3, label: '3 days' },
+                            { value: 7, label: '7 days (default)' },
+                            { value: -1, label: 'Never (permanent dismiss)' },
+                        ]}
+                        value={settings.alertManagement?.reappearanceDays ?? 7}
+                        onChange={(val) => updateAlertManagement('reappearanceDays', Number(val))}
+                    />
+                </div>
+
+                {/* Dismissed alerts stats + reset */}
+                <div className="mt-4 bg-slate-100 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <span className="text-sm text-primary font-medium">
+                                {getStats().total} alert{getStats().total !== 1 ? 's' : ''} dismissed
+                            </span>
+                            {getStats().permanent > 0 && (
+                                <span className="ml-2 text-xs text-slate-500">
+                                    ({getStats().permanent} permanent)
+                                </span>
+                            )}
+                        </div>
+                        {getStats().total > 0 && (
+                            resetConfirm ? (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[11px] text-amber-400">Are you sure?</span>
+                                    <button
+                                        onClick={() => { resetDismissedAlerts(); setResetConfirm(false); }}
+                                        className="text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 px-2 py-1 rounded transition-colors"
+                                    >
+                                        Yes, reset
+                                    </button>
+                                    <button
+                                        onClick={() => setResetConfirm(false)}
+                                        className="text-xs text-slate-500 hover:text-slate-300 px-2 py-1 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => setResetConfirm(true)}
+                                    className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                                >
+                                    <RotateCcw className="w-3.5 h-3.5" />
+                                    Reset All
+                                </button>
+                            )
+                        )}
                     </div>
-                    <p className="text-xs text-secondary">
-                        Run <code className="bg-slate-200 dark:bg-slate-900 px-1 rounded">npm run api</code> to enable the correlation API server on port 3001.
+                    <p className="text-[11px] text-slate-500 mt-2">
+                        Dismissed alerts won't reappear unless data changes significantly or the reappearance window expires.
                     </p>
                 </div>
             </SettingSection>
 
-            {/* Current Settings Debug */}
-            <SettingSection
-                title={<div className="flex items-center gap-2"><SettingsIcon className="w-4 h-4" /> Current Configuration</div>}
-                description="Debug view of saved settings"
-            >
-                <pre className="bg-slate-100 dark:bg-slate-900 rounded-lg p-4 text-xs text-secondary font-mono overflow-x-auto border border-slate-200 dark:border-slate-800">
-                    {JSON.stringify(settings, null, 2)}
-                </pre>
-            </SettingSection>
+
+
+
+
         </div>
     );
 }

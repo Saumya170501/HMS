@@ -19,6 +19,14 @@ const DEFAULT_SETTINGS = {
         priceAlerts: false,
         marketNews: true,
         volumeSpikes: false
+    },
+    alertManagement: {
+        divergenceAlerts: true,
+        hedgeOpportunities: true,
+        volatilityAlerts: true,
+        sensitivity: 'medium',     // 'low' | 'medium' | 'high'
+        reappearanceDays: 7,       // 1, 3, 7, or -1 (never)
+        soundEnabled: true,
     }
 };
 
@@ -46,6 +54,20 @@ const useSettingsStore = create(
                     settings: {
                         ...state.settings,
                         notifications: { ...state.settings.notifications, [key]: value }
+                    }
+                }));
+                const uid = get()._userId;
+                if (uid) {
+                    userDataService.saveSettings(uid, get().settings);
+                }
+            },
+
+            // Update nested alertManagement settings
+            updateAlertManagement: (key, value) => {
+                set((state) => ({
+                    settings: {
+                        ...state.settings,
+                        alertManagement: { ...state.settings.alertManagement, [key]: value }
                     }
                 }));
                 const uid = get()._userId;

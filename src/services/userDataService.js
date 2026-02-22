@@ -1,22 +1,13 @@
 /**
  * Central User Data Service
- * Handles all Firestore operations for user-specific data.
- * All data is stored under users/{userId} to ensure complete isolation.
+ * Handles Firestore operations for user profile, preferences, and settings.
+ * Portfolio, watchlist, and price alerts now use their own subcollection-based services.
  */
 
 import { db } from '../config/firebase';
-import { doc, getDoc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 
-// Default structures for new users
-const DEFAULT_PORTFOLIO = {
-    holdings: [],
-    totalValue: 0,
-    totalCost: 0,
-    totalGainLoss: 0,
-    totalGainLossPercent: 0,
-    lastUpdated: new Date().toISOString()
-};
-
+// Default structures
 const DEFAULT_SETTINGS = {
     correlationLookback: 90,
     aiExplanations: true,
@@ -42,15 +33,24 @@ const DEFAULT_PREFERENCES = {
     historicalTimeframe: 90
 };
 
-/**
- * Get a reference to a user's document
- */
+// Keep DEFAULT_PORTFOLIO for backwards compat (used by portfolioService)
+const DEFAULT_PORTFOLIO = {
+    holdings: [],
+    totalValue: 0,
+    totalCost: 0,
+    totalGainLoss: 0,
+    totalGainLossPercent: 0,
+    lastUpdated: new Date().toISOString()
+};
+
+// ─── Core helpers ────────────────────────────────────────────
+
 function getUserRef(userId) {
     return doc(db, 'users', userId);
 }
 
 /**
- * Get full user data document
+ * Get full user root document
  */
 export async function getUserData(userId) {
     if (!userId) return null;
@@ -64,7 +64,7 @@ export async function getUserData(userId) {
 }
 
 /**
- * Update a single field on the user document (merge)
+ * Update a single field on the root user document (merge)
  */
 export async function updateUserField(userId, field, value) {
     if (!userId) return;
@@ -80,7 +80,28 @@ export async function updateUserField(userId, field, value) {
 }
 
 /**
- * Subscribe to real-time changes on the entire user document
+ * Initialize a new user document with defaults
+ */
+export async function initializeUserDoc(userId, profile = {}) {
+    if (!userId) return;
+    try {
+        const existing = await getUserData(userId);
+        if (!existing) {
+            await setDoc(getUserRef(userId), {
+                ...profile,
+                settings: { ...DEFAULT_SETTINGS },
+                preferences: { ...DEFAULT_PREFERENCES },
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            });
+        }
+    } catch (error) {
+        console.error('Error initializing user doc:', error);
+    }
+}
+
+/**
+ * Subscribe to real-time changes on the root user document
  */
 export function subscribeToUserData(userId, callback) {
     if (!userId) return () => { };
@@ -91,65 +112,7 @@ export function subscribeToUserData(userId, callback) {
     });
 }
 
-// ─── Portfolio ───────────────────────────────────────────────
-
-export async function getPortfolio(userId) {
-    if (!userId) return { ...DEFAULT_PORTFOLIO };
-    try {
-        const data = await getUserData(userId);
-        return data?.portfolio || { ...DEFAULT_PORTFOLIO };
-    } catch {
-        return { ...DEFAULT_PORTFOLIO };
-    }
-}
-
-export async function savePortfolio(userId, portfolio) {
-    portfolio.lastUpdated = new Date().toISOString();
-    await updateUserField(userId, 'portfolio', portfolio);
-}
-
-// ─── Price Alerts ────────────────────────────────────────────
-
-export async function getPriceAlerts(userId) {
-    if (!userId) return [];
-    try {
-        const data = await getUserData(userId);
-        return data?.priceAlerts || [];
-    } catch {
-        return [];
-    }
-}
-
-export async function savePriceAlerts(userId, alerts) {
-    await updateUserField(userId, 'priceAlerts', alerts);
-}
-
-export async function addPriceAlert(userId, alert) {
-    const alerts = await getPriceAlerts(userId);
-    const newAlert = {
-        id: Date.now(),
-        created_at: Date.now(),
-        triggered: false,
-        ...alert
-    };
-    alerts.push(newAlert);
-    await savePriceAlerts(userId, alerts);
-    return newAlert;
-}
-
-export async function deletePriceAlert(userId, alertId) {
-    const alerts = await getPriceAlerts(userId);
-    const filtered = alerts.filter(a => a.id !== alertId);
-    await savePriceAlerts(userId, filtered);
-    return filtered;
-}
-
-export async function deleteAllPriceAlerts(userId) {
-    await savePriceAlerts(userId, []);
-    return [];
-}
-
-// ─── Settings ────────────────────────────────────────────────
+// ─── Settings (stays on root doc) ────────────────────────────
 
 export async function getSettings(userId) {
     if (!userId) return { ...DEFAULT_SETTINGS };
@@ -165,7 +128,7 @@ export async function saveSettings(userId, settings) {
     await updateUserField(userId, 'settings', settings);
 }
 
-// ─── Preferences (theme, historical, etc.) ───────────────────
+// ─── Preferences (stays on root doc) ─────────────────────────
 
 export async function getPreferences(userId) {
     if (!userId) return { ...DEFAULT_PREFERENCES };
@@ -179,6 +142,49 @@ export async function getPreferences(userId) {
 
 export async function savePreferences(userId, preferences) {
     await updateUserField(userId, 'preferences', preferences);
+}
+
+// ─── Legacy portfolio methods (delegate to subcollection service) ─
+
+/**
+ * @deprecated Use portfolioService directly. Kept for backwards compat.
+ */
+export async function getPortfolio(userId) {
+    // Import dynamically to avoid circular deps
+    const { getPortfolio: getPortfolioFromService } = await import('./portfolioService');
+    return getPortfolioFromService(userId);
+}
+
+export async function savePortfolio(userId, portfolio) {
+    const { savePortfolio: savePortfolioFromService } = await import('./portfolioService');
+    return savePortfolioFromService(portfolio, userId);
+}
+
+// ─── Legacy price alert methods (delegate to subcollection service) ─
+
+export async function getPriceAlerts(userId) {
+    const { getPriceAlerts: getPriceAlertsFromService } = await import('./priceAlertsService');
+    return getPriceAlertsFromService(userId);
+}
+
+export async function savePriceAlerts(userId, alerts) {
+    const { savePriceAlerts: savePriceAlertsFromService } = await import('./priceAlertsService');
+    return savePriceAlertsFromService(alerts, userId);
+}
+
+export async function addPriceAlert(userId, alert) {
+    const { addPriceAlert: addPriceAlertFromService } = await import('./priceAlertsService');
+    return addPriceAlertFromService(alert, userId);
+}
+
+export async function deletePriceAlert(userId, alertId) {
+    const { deletePriceAlert: deletePriceAlertFromService } = await import('./priceAlertsService');
+    return deletePriceAlertFromService(alertId, userId);
+}
+
+export async function deleteAllPriceAlerts(userId) {
+    const { deleteAllPriceAlerts: deleteAllFromService } = await import('./priceAlertsService');
+    return deleteAllFromService(userId);
 }
 
 export { DEFAULT_PORTFOLIO, DEFAULT_SETTINGS, DEFAULT_PREFERENCES };

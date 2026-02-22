@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
     ResponsiveContainer, Area, AreaChart
 } from 'recharts';
 import {
     TrendingUp, TrendingDown, Coins, Pickaxe, LayoutGrid,
-    AlertTriangle, RefreshCw
+    AlertTriangle, RefreshCw, Star
 } from 'lucide-react';
 import { getHistoricalPrices } from '../services/historicalPriceService';
 import apiManager from '../services/apiManager';
 import { useAuth } from '../context/AuthContext';
 import * as userDataService from '../services/userDataService';
+import { watchlistService } from '../services/watchlistService';
 
 // Asset Type Selector
 const AssetTypeSelector = ({ value, onChange }) => (
@@ -25,7 +27,7 @@ const AssetTypeSelector = ({ value, onChange }) => (
                 onClick={() => onChange(type.value)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${value === type.value
                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
-                    : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'
+                    : 'bg-slate-100 dark:bg-slate-800 text-secondary hover:text-primary hover:bg-slate-200 dark:hover:bg-slate-700 border border-border'
                     }`}
             >
                 <type.icon className={`w-4 h-4 ${value === type.value ? 'text-white' : type.color}`} />
@@ -50,7 +52,7 @@ const TimeframeSelector = ({ value, onChange }) => (
                 onClick={() => onChange(tf.value)}
                 className={`px-3 py-1.5 text-sm font-mono rounded transition-colors ${value === tf.value
                     ? 'bg-purple-600 text-white'
-                    : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                    : 'bg-slate-100 dark:bg-slate-800 text-secondary hover:text-primary border border-border'
                     }`}
             >
                 {tf.label}
@@ -60,15 +62,23 @@ const TimeframeSelector = ({ value, onChange }) => (
 );
 
 export default function HistoricalData() {
+    const [searchParams] = useSearchParams();
     const { currentUser } = useAuth();
     const userId = currentUser?.uid;
 
     // Initialize state from localStorage if available
     const [assetType, setAssetType] = useState(() => {
+        const urlMarket = searchParams.get('market');
+        if (urlMarket) {
+            // Normalize 'stock' vs 'stocks' and 'commodity' vs 'commodities'
+            if (urlMarket === 'stocks') return 'stock';
+            if (urlMarket === 'commodities') return 'commodity';
+            return urlMarket;
+        }
         return localStorage.getItem('hms_historical_assetType') || 'crypto';
     });
     const [selectedSymbol, setSelectedSymbol] = useState(() => {
-        return localStorage.getItem('hms_historical_symbol') || 'BTC';
+        return searchParams.get('symbol') || localStorage.getItem('hms_historical_symbol') || 'BTC';
     });
     const [timeframe, setTimeframe] = useState(() => {
         const saved = localStorage.getItem('hms_historical_timeframe');
@@ -78,17 +88,23 @@ export default function HistoricalData() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [availableAssets, setAvailableAssets] = useState([]);
+    const [visibleRows, setVisibleRows] = useState(30);
+    const [isWatchlisted, setIsWatchlisted] = useState(false);
 
     // Load preferences from Firestore when user logs in
     useEffect(() => {
         if (userId) {
             userDataService.getPreferences(userId).then(prefs => {
-                if (prefs?.historicalAssetType) setAssetType(prefs.historicalAssetType);
-                if (prefs?.historicalSymbol) setSelectedSymbol(prefs.historicalSymbol);
-                if (prefs?.historicalTimeframe) setTimeframe(prefs.historicalTimeframe);
+                // ONLY apply preferences if there are NO query parameters
+                const hasUrlParams = searchParams.get('symbol') || searchParams.get('market');
+                if (!hasUrlParams) {
+                    if (prefs?.historicalAssetType) setAssetType(prefs.historicalAssetType);
+                    if (prefs?.historicalSymbol) setSelectedSymbol(prefs.historicalSymbol);
+                    if (prefs?.historicalTimeframe) setTimeframe(prefs.historicalTimeframe);
+                }
             });
         }
-    }, [userId]);
+    }, [userId, searchParams]);
 
     // Save preferences whenever they change
     useEffect(() => {
@@ -118,6 +134,82 @@ export default function HistoricalData() {
         }
     }, [timeframe]);
 
+    // Check if current asset is watchlisted
+    useEffect(() => {
+        let isMounted = true;
+        const checkWatchlist = async () => {
+            if (!selectedSymbol) return;
+
+            // Normalize symbol to uppercase for consistent Firestore/localStorage lookups
+            const normalizedSymbol = selectedSymbol.toUpperCase();
+
+            try {
+                if (currentUser) {
+                    const inWatchlist = await watchlistService.isInWatchlist(currentUser.uid, normalizedSymbol);
+                    if (isMounted) setIsWatchlisted(inWatchlist);
+                } else {
+                    const stored = JSON.parse(localStorage.getItem('watchlist') || '[]');
+                    if (isMounted) setIsWatchlisted(stored.some(item => item.symbol.toUpperCase() === normalizedSymbol));
+                }
+            } catch (err) {
+                console.error('Error checking watchlist status:', err);
+            }
+        };
+        checkWatchlist();
+        return () => { isMounted = false; };
+    }, [selectedSymbol, currentUser]);
+
+    const handleToggleWatchlist = async (e) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        if (!selectedSymbol) return;
+
+        const normalizedSymbol = selectedSymbol.toUpperCase();
+        console.log(`Starting toggle for ${normalizedSymbol}. Current state: ${isWatchlisted}`);
+
+        const foundAsset = availableAssets.find(a => a.symbol.toUpperCase() === normalizedSymbol);
+        const assetToToggle = foundAsset || {
+            symbol: normalizedSymbol,
+            name: normalizedSymbol,
+            market: assetType === 'stock' ? 'stocks' : assetType === 'commodity' ? 'commodities' : 'crypto'
+        };
+
+        // Ensure market is correct
+        if (!assetToToggle.market) {
+            assetToToggle.market = assetType === 'stock' ? 'stocks' : assetType === 'commodity' ? 'commodities' : 'crypto';
+        }
+
+        try {
+            if (currentUser) {
+                if (isWatchlisted) {
+                    await watchlistService.removeFromWatchlist(currentUser.uid, normalizedSymbol);
+                    console.log('Removed from Firestore watchlist');
+                } else {
+                    await watchlistService.addToWatchlist(currentUser.uid, assetToToggle);
+                    console.log('Added to Firestore watchlist');
+                }
+            } else {
+                const stored = JSON.parse(localStorage.getItem('watchlist') || '[]');
+                let updated;
+                if (isWatchlisted) {
+                    updated = stored.filter(item => item.symbol.toUpperCase() !== normalizedSymbol);
+                } else {
+                    updated = [...stored, assetToToggle];
+                }
+                localStorage.setItem('watchlist', JSON.stringify(updated));
+                console.log('Updated localStorage watchlist');
+            }
+
+            // Toggle local state immediately for snappy UI
+            setIsWatchlisted(prev => !prev);
+        } catch (error) {
+            console.error("Failed to toggle watchlist:", error);
+        }
+    };
+
     // Load available assets based on type
     useEffect(() => {
         async function loadAssets() {
@@ -128,7 +220,8 @@ export default function HistoricalData() {
                 setAvailableAssets(data);
 
                 // Select first asset if current selection isn't in new list
-                if (data.length > 0 && !data.find(a => a.symbol === selectedSymbol)) {
+                // BUT skip this check if we have a URL symbol, trust it exists in that market
+                if (!searchParams.get('symbol') && data.length > 0 && !data.find(a => a.symbol === selectedSymbol)) {
                     console.log(`⚠️ Symbol ${selectedSymbol} not found, defaulting to ${data[0].symbol}`);
                     setSelectedSymbol(data[0].symbol);
                 }
@@ -169,6 +262,11 @@ export default function HistoricalData() {
         fetchData();
     }, [selectedSymbol, timeframe, assetType]);
 
+    // Reset visible rows when data changes
+    useEffect(() => {
+        setVisibleRows(30);
+    }, [selectedSymbol, timeframe, assetType]);
+
     // Get display data (exclude the extra day used for calculation)
     const displayData = React.useMemo(() => {
         if (priceData.length <= timeframe) return priceData;
@@ -191,7 +289,7 @@ export default function HistoricalData() {
         return { high, low, first, last, change, avg };
     }, [displayData]);
 
-    const selectedAsset = availableAssets.find(a => a.symbol === selectedSymbol);
+    const selectedAsset = availableAssets.find(a => a.symbol.toUpperCase() === selectedSymbol.toUpperCase());
 
     return (
         <div className="p-6 space-y-6">
@@ -213,17 +311,31 @@ export default function HistoricalData() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="text-xs text-secondary uppercase tracking-wider mb-2 block">Select Asset</label>
-                        <select
-                            value={selectedSymbol}
-                            onChange={(e) => setSelectedSymbol(e.target.value)}
-                            className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2.5 text-sm text-primary font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            {availableAssets.map((asset) => (
-                                <option key={asset.symbol} value={asset.symbol}>
-                                    {asset.symbol} - {asset.name}
-                                </option>
-                            ))}
-                        </select>
+                        <div className="flex gap-2">
+                            <select
+                                value={selectedSymbol}
+                                onChange={(e) => setSelectedSymbol(e.target.value)}
+                                className="flex-1 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2.5 text-sm text-primary font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                {availableAssets.map((asset) => (
+                                    <option key={asset.symbol} value={asset.symbol}>
+                                        {asset.symbol} - {asset.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <button
+                                type="button"
+                                onClick={handleToggleWatchlist}
+                                className={`p-2.5 rounded-lg border transition-all flex items-center justify-center gap-2 min-w-[54px] h-[44px] relative z-30 active:scale-90 cursor-pointer touch-manipulation
+                                    ${isWatchlisted
+                                        ? 'bg-yellow-500/10 border-yellow-500/40 text-yellow-500 shadow-sm shadow-yellow-500/10'
+                                        : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-secondary hover:text-primary hover:border-slate-400'
+                                    }`}
+                                title={isWatchlisted ? "Remove from Watchlist" : "Add to Watchlist"}
+                            >
+                                <Star className={`w-5 h-5 pointer-events-none transition-transform duration-300 ${isWatchlisted ? 'fill-yellow-500 scale-110' : ''}`} />
+                            </button>
+                        </div>
                     </div>
 
                     <div>
@@ -381,7 +493,7 @@ export default function HistoricalData() {
 
                                     return fullDataReversed
                                         .filter(row => displaySet.has(row.date))
-                                        .slice(0, 30)
+                                        .slice(0, visibleRows)
                                         .map((row, idx) => {
                                             // Find this row's index in full reversed data for prev price
                                             const fullIdx = fullDataReversed.findIndex(d => d.date === row.date);
@@ -409,6 +521,17 @@ export default function HistoricalData() {
                             </tbody>
                         </table>
                     </div>
+                    {/* Show More Button */}
+                    {priceData.length > visibleRows && (
+                        <div className="p-3 border-t border-border bg-slate-50 dark:bg-slate-800/50 text-center">
+                            <button
+                                onClick={() => setVisibleRows(prev => Math.min(prev + 30, priceData.length))}
+                                className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                            >
+                                Show More Rows ({Math.min(priceData.length - visibleRows, 30)} more)
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
