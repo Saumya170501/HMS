@@ -16,7 +16,6 @@ export default function Heatmap() {
     }, []);
 
     return (
-<<<<<<< HEAD
         <div className="p-3 sm:p-4 md:p-6 h-[calc(100vh-48px)] md:h-[calc(100vh-64px)]">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-2">
                 <div>
@@ -99,28 +98,6 @@ export default function Heatmap() {
                     <div className="heatmap-pane flex-1 min-w-0">
                         <HeatmapContainer paneId="right" title="Right Viewport" highlightedSymbol={highlightedSymbol} />
                     </div>
-=======
-        <div className="p-4 md:p-6 h-auto md:h-[calc(100vh-64px)] overflow-y-auto md:overflow-hidden">
-            <div className="flex items-center justify-between mb-4">
-                <div>
-                    <h1 className="text-xl md:text-2xl font-bold text-slate-200">Market Heatmap</h1>
-                    <p className="text-slate-500 text-xs md:text-sm font-mono">Dual-viewport visualization</p>
-                </div>
-            </div>
-
-            <div className="flex flex-col md:flex-row gap-4 h-auto md:h-[calc(100%-60px)] pb-20 md:pb-0">
-                {/* Left Pane */}
-                <div className="w-full md:flex-1 min-w-0 h-[450px] md:h-full">
-                    <HeatmapContainer paneId="left" title="Left Viewport" />
-                </div>
-
-                {/* Divider - Hidden on mobile */}
-                <div className="hidden md:block w-px bg-dark-border" />
-
-                {/* Right Pane */}
-                <div className="w-full md:flex-1 min-w-0 h-[450px] md:h-full">
-                    <HeatmapContainer paneId="right" title="Right Viewport" />
->>>>>>> b094702fd2785f0ea4cd17431efbb841318dc055
                 </div>
             )}
         </div>
