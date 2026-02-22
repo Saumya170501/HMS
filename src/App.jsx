@@ -22,6 +22,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import VerifyEmail from './pages/VerifyEmail';
 import AlertNotification from './components/AlertNotification';
+import ChatbotWidget from './components/ChatbotWidget';
 import { useWebSocket } from './hooks/useWebSocket';
 import useThemeStore from './hooks/useThemeStore';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -60,6 +61,7 @@ const AppLayout = () => {
                     <Outlet />
                 </main>
                 <AlertNotification />
+                <ChatbotWidget />
             </div>
             <BottomNav />
         </div>

@@ -6,8 +6,8 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { priceCache, historicalCache, correlationCache, apiCache } from './src/services/cacheService.js';
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -515,6 +515,78 @@ app.get('/api/price/:symbol', async (req, res) => {
         res.json(priceData);
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+});
+
+
+app.get('/api/price/:symbol', async (req, res) => {
+    // ... existing price endpoint ... // (Skipped for brevity in this log)
+});
+
+// ==========================================
+// 4b. AI CHATBOT ENDPOINT
+// ==========================================
+// Initialize Gemini only if key exists
+const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
+
+const SYSTEM_PROMPT = `
+You are the MarketVue AI Assistant, a helpful and professional financial data expert.
+Your job is to assist users with understanding market trends, reading heatmaps, and analyzing stocks, crypto, and commodities.
+Do not provide direct financial advice (e.g., "You should buy X"). Always add a disclaimer if appropriate.
+Keep your answers concise, clear, and formatted nicely.
+`;
+
+app.post('/api/chat', async (req, res) => {
+    try {
+        const { messages } = req.body;
+
+        if (!messages || !Array.isArray(messages)) {
+            return res.status(400).json({ error: 'Invalid message format' });
+        }
+
+        // 1. If Gemini is configured, use it
+        if (genAI) {
+            const model = genAI.getGenerativeModel({
+                model: "gemini-1.5-flash",
+                systemInstruction: SYSTEM_PROMPT
+            });
+
+            // Convert messages to Gemini history format (excluding the very last user message)
+            const history = messages.slice(0, -1).map(msg => ({
+                role: msg.role === 'assistant' ? 'model' : 'user',
+                parts: [{ text: msg.content }]
+            }));
+
+            const latestMessage = messages[messages.length - 1].content;
+
+            const chat = model.startChat({ history });
+            const result = await chat.sendMessage(latestMessage);
+
+            return res.json({ reply: result.response.text() });
+        }
+
+        // 2. Fallback Mock Mode (If no API Key)
+        else {
+            console.log("Chatbot: Responding in Mock Mode (No GEMINI_API_KEY found)");
+
+            // Artificial delay to feel "real"
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            const lastUserMsg = messages[messages.length - 1].content.toLowerCase();
+            let mockReply = "I am currently in **Offline Demo Mode** because my API key is not configured. However, I am ready to analyze market data once fully connected!";
+
+            if (lastUserMsg.includes('bitcoin') || lastUserMsg.includes('btc')) {
+                mockReply = "*(Mock Data)* Bitcoin (BTC) is currently showing high volatility. Our heatmaps indicate strong correlations with the broader tech sector today.";
+            } else if (lastUserMsg.includes('hello') || lastUserMsg.includes('hi')) {
+                mockReply = "Hello there! I'm operating in Mock Mode right now, but I'm ready to help you analyze your portfolio. What would you like to know?";
+            }
+
+            return res.json({ reply: mockReply });
+        }
+
+    } catch (error) {
+        console.error('Chat API Error:', error);
+        res.status(500).json({ error: 'Failed to process chat request.' });
     }
 });
 
