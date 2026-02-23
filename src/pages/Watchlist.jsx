@@ -148,13 +148,6 @@ export default function Watchlist() {
 
     return (
         <div className="p-6 space-y-6 animate-fadeIn relative">
-            {/* Debug Panel */}
-            {debugLog && (
-                <div className="fixed bottom-4 right-4 z-50 bg-black/90 text-green-400 font-mono text-[10px] p-4 rounded max-w-sm max-h-60 overflow-y-auto whitespace-pre-wrap">
-                    {debugLog}
-                </div>
-            )}
-
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
