@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { TrendingUp, Coins, Pickaxe, LayoutGrid, Star, Search, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Coins, Pickaxe, LayoutGrid, Star, Search, BarChart3, ArrowRight, Trash2 } from 'lucide-react';
 import apiManager from '../services/apiManager';
 import { useAuth } from '../context/AuthContext';
 import { watchlistService } from '../services/watchlistService';
@@ -13,6 +13,11 @@ export default function Watchlist() {
     const [watchlistData, setWatchlistData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showAll, setShowAll] = useState(false);
+
+    const formatPrice = (price) => {
+        if (!price) return '$0.00';
+        return price < 1 ? `$${price.toFixed(4)}` : `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
 
     useEffect(() => {
         let unsubscribe = () => { };
@@ -147,117 +152,140 @@ export default function Watchlist() {
     }
 
     return (
-        <div className="p-6 space-y-6 animate-fadeIn relative">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-primary">Watchlist</h1>
-                    <p className="text-secondary text-sm font-mono">{watchlistData.length} assets tracked</p>
-                </div>
-            </div>
-
-            {/* Watchlist Table */}
-            {watchlistData.length > 0 ? (
-                <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b border-border bg-slate-50 dark:bg-slate-800/50">
-                                    <th className="text-left px-4 py-3 text-xs text-secondary uppercase tracking-wider font-medium">Asset</th>
-                                    <th className="text-right px-4 py-3 text-xs text-secondary uppercase tracking-wider font-medium">Price</th>
-                                    <th className="text-right px-4 py-3 text-xs text-secondary uppercase tracking-wider font-medium">24h Change</th>
-                                    <th className="text-right px-4 py-3 text-xs text-secondary uppercase tracking-wider font-medium">Market Cap</th>
-                                    <th className="text-center px-4 py-3 text-xs text-secondary uppercase tracking-wider font-medium">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {(showAll ? watchlistData : watchlistData.slice(0, 5)).map((asset) => (
-                                    <tr key={asset.symbol} className="border-b border-border last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                                        <td className="px-4 py-4">
-                                            <Link to={`/asset/${asset.market}/${asset.symbol}`} className="flex items-center gap-3 group">
-                                                <AssetIcon
-                                                    symbol={asset.symbol}
-                                                    market={asset.market}
-                                                    size={32}
-                                                    className="group-hover:scale-110 transition-transform shadow-sm"
-                                                />
-                                                <div>
-                                                    <div className="font-mono font-bold text-primary group-hover:text-blue-500 transition-colors">{asset.symbol}</div>
-                                                    <div className="text-xs text-secondary">{asset.name}</div>
-                                                </div>
-                                            </Link>
-                                        </td>
-                                        <td className="px-4 py-4 text-right font-mono text-primary">
-                                            ${asset.price?.toLocaleString()}
-                                        </td>
-                                        <td className={`px-4 py-4 text-right font-mono ${asset.change >= 0 ? 'text-green-600 dark:text-gain-bright' : 'text-red-600 dark:text-loss-bright'}`}>
-                                            {asset.change >= 0 ? '+' : ''}{asset.change?.toFixed(2)}%
-                                        </td>
-                                        <td className="px-4 py-4 text-right font-mono text-secondary">
-                                            {asset.marketCap >= 1e12
-                                                ? `$${(asset.marketCap / 1e12).toFixed(2)}T`
-                                                : asset.marketCap >= 1e9
-                                                    ? `$${(asset.marketCap / 1e9).toFixed(2)}B`
-                                                    : `$${(asset.marketCap / 1e6).toFixed(2)}M`
-                                            }
-                                        </td>
-                                        <td className="px-4 py-4 text-center">
-                                            <div className="flex items-center justify-center gap-2">
-                                                <Link
-                                                    to={`/asset/${asset.market}/${asset.symbol}`}
-                                                    className="p-2 text-secondary hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
-                                                    title="View Details"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                    </svg>
-                                                </Link>
-                                                <button
-                                                    onClick={() => removeFromWatchlist(asset)}
-                                                    className="p-2 text-secondary hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                                                    title="Remove from Watchlist"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+        <div className="min-h-screen p-4 sm:p-6 md:p-8 animate-fadeIn">
+            <div className="max-w-[1920px] mx-auto space-y-8">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gradient-premium mb-2">My Watchlist</h1>
+                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                            {watchlistData.length} assets actively tracked
+                        </p>
                     </div>
+                </div>
 
-                    {/* Show More Button */}
-                    {watchlistData.length > 5 && (
-                        <div className="p-3 border-t border-border bg-slate-50 dark:bg-slate-800/50 text-center">
-                            <button
-                                onClick={() => setShowAll(!showAll)}
-                                className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                            >
-                                {showAll ? 'Show Less' : `Show All (${watchlistData.length})`}
-                            </button>
+                {/* Watchlist Grid */}
+                {watchlistData.length > 0 ? (
+                    <div className="bento-grid">
+                        {(showAll ? watchlistData : watchlistData.slice(0, 12)).map((asset) => {
+                            const isUp = asset.change >= 0;
+                            const accentColor = isUp ? 'emerald' : 'red';
+
+                            // Generate mini sparkline points
+                            const sparkPoints = [];
+                            let y = 50;
+                            for (let i = 0; i < 20; i++) {
+                                y = Math.max(10, Math.min(90, y + (Math.random() - (isUp ? 0.4 : 0.6)) * 15));
+                                sparkPoints.push(`${(i / 19) * 140},${y}`);
+                            }
+                            const sparkPath = sparkPoints.join(' ');
+
+                            return (
+                                <div key={asset.symbol} className={`bento-card bento-col-span-1 md:col-span-2 p-5 flex flex-col justify-between group hover:border-${accentColor}-400 dark:hover:border-${accentColor}-500 hover:shadow-xl hover:shadow-${accentColor}-500/10`}>
+                                    <div className="flex items-start justify-between mb-4">
+                                        <Link to={`/asset/${asset.market}/${asset.symbol}`} className="flex items-center gap-3">
+                                            <AssetIcon
+                                                symbol={asset.symbol}
+                                                market={asset.market}
+                                                size={40}
+                                                className="group-hover:scale-110 transition-transform shadow-sm"
+                                            />
+                                            <div>
+                                                <div className="font-mono font-bold text-lg text-slate-900 dark:text-white group-hover:text-blue-500 transition-colors uppercase">{asset.symbol}</div>
+                                                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 line-clamp-1">{asset.name}</div>
+                                            </div>
+                                        </Link>
+                                        <div className="flex items-center gap-2">
+                                            <Link
+                                                to={`/asset/${asset.market}/${asset.symbol}`}
+                                                className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                            </Link>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    handleRemove(asset);
+                                                }}
+                                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                title="Remove from watchlist"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Mini Sparkline */}
+                                    <div className="my-2 -mx-1 pointer-events-none">
+                                        <svg width="100%" height="40" viewBox="0 0 148 100" preserveAspectRatio="none" className="h-10">
+                                            <defs>
+                                                <linearGradient id={`spark-grad-watch-${asset.symbol}`} x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="0%" stopColor={isUp ? '#10b981' : '#ef4444'} stopOpacity="0.3" />
+                                                    <stop offset="100%" stopColor={isUp ? '#10b981' : '#ef4444'} stopOpacity="0" />
+                                                </linearGradient>
+                                            </defs>
+                                            <polyline
+                                                points={sparkPath}
+                                                fill="none"
+                                                stroke={isUp ? '#10b981' : '#ef4444'}
+                                                strokeWidth="2.5"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            />
+                                            <polygon
+                                                points={`0,100 ${sparkPath} 140,100`}
+                                                fill={`url(#spark-grad-watch-${asset.symbol})`}
+                                            />
+                                        </svg>
+                                    </div>
+
+                                    <div className="flex items-end justify-between mt-2">
+                                        <div className="text-xl font-black font-mono text-slate-900 dark:text-white tracking-tight">
+                                            {formatPrice(asset.price)}
+                                        </div>
+                                        <div className={`flex items-center gap-1 text-sm font-bold ${isUp ? 'text-emerald-500' : 'text-red-500'}`}>
+                                            {isUp ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                                            {asset.change >= 0 ? '+' : ''}{asset.change?.toFixed(2)}%
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className="bento-card bento-col-span-full p-12 flex flex-col items-center justify-center text-center">
+                        <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-full mb-4">
+                            <Star className="w-8 h-8 text-slate-400" />
                         </div>
-                    )}
-                </div>
-            ) : (
-                <div className="bg-surface border border-border rounded-xl p-12 text-center shadow-sm">
-                    <Star className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-primary mb-2">Your Watchlist is Empty</h3>
-                    <p className="text-secondary text-sm mb-4">
-                        Add assets to your watchlist to track them here
-                    </p>
-                    <Link
-                        to="/"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-lg shadow-blue-500/20"
-                    >
-                        <BarChart3 className="w-4 h-4" />
-                        <span>Browse Assets</span>
-                    </Link>
-                </div>
-            )}
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Your watchlist is empty</h3>
+                        <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-6">
+                            Start tracking your favorite assets to see them appear here in real-time.
+                        </p>
+                        <Link
+                            to="/markets"
+                            className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-blue-500/25"
+                        >
+                            Explore Markets
+                            <ArrowRight className="w-4 h-4 ml-2" />
+                        </Link>
+                    </div>
+                )}
+
+                {watchlistData.length > 5 && !showAll && (
+                    <div className="flex justify-center mt-8">
+                        <button
+                            onClick={() => setShowAll(true)}
+                            className="inline-flex items-center px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold rounded-xl transition-all shadow-sm group"
+                        >
+                            View All Assets
+                            <ChevronRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
