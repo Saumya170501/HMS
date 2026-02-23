@@ -93,8 +93,20 @@ export default function AssetDetail() {
             }
         } else {
             const watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
+            const coinGeckoId = getCoinGeckoId(symbol);
+            const upperSymbol = symbol.toUpperCase();
+
             if (isWatchlisted) {
-                const updated = watchlist.filter(w => w.symbol.toUpperCase() !== symbol.toUpperCase());
+                const updated = watchlist.filter(w => {
+                    const wUpper = w.symbol?.toUpperCase();
+                    const wIdUpper = w.id?.toUpperCase();
+
+                    const isMatch = wUpper === upperSymbol ||
+                        (wIdUpper === upperSymbol) ||
+                        (coinGeckoId && (wUpper === coinGeckoId.toUpperCase() || wIdUpper === coinGeckoId.toUpperCase()));
+
+                    return !isMatch;
+                });
                 localStorage.setItem('watchlist', JSON.stringify(updated));
                 setIsWatchlisted(false);
             } else {

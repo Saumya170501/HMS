@@ -602,14 +602,31 @@ app.post('/api/chat', async (req, res) => {
             await new Promise(resolve => setTimeout(resolve, 1500));
 
             const lastUserMsg = messages[messages.length - 1].content.toLowerCase();
-            let mockReply = "I am currently in **Offline Demo Mode** because my API key is invalid or not configured. However, I am ready to analyze market data once fully connected!\n\nWould you like to visit your [Account Settings](/settings)?";
 
-            if (lastUserMsg.includes('bitcoin') || lastUserMsg.includes('btc')) {
-                mockReply = "*(Mock Data)* Bitcoin (BTC) is currently showing high volatility. Our heatmaps indicate strong correlations with the broader tech sector today. Check it out here: [Open Heatmap](/heatmap)";
-            } else if (lastUserMsg.includes('hello') || lastUserMsg.includes('hi')) {
-                mockReply = "Hello there! I'm operating in Mock Mode right now, but I can still help you navigate. Want to see your saved crypto? [Go to Portfolio](/portfolio)";
-            } else if (lastUserMsg.includes('alerts') || lastUserMsg.includes('volatility')) {
-                mockReply = "You can track rapid price changes on the Volatility panel. [View Volatility Alerts](/volatility)";
+            // Offline routing logic
+            const routes = [
+                { keywords: ['dashboard', 'home', 'main'], reply: "You can see your overall market summary and trending assets on the dashboard. [Go to Dashboard](/dashboard)" },
+                { keywords: ['heatmap', 'map', 'visual', 'blocks', 'tree'], reply: "The Heatmap provides a great visual overview of market performance weighted by market cap. [Open Heatmap](/heatmap)" },
+                { keywords: ['compare', 'versus', 'vs'], reply: "Want to see how two assets stack up against each other? Use our comparison tool! [Compare Assets](/compare)" },
+                { keywords: ['history', 'historical', 'past data', 'old data', 'chart'], reply: "You can view detailed historical price data, volume, and OHLC charts in the Historical section. [Historical Data](/historical)" },
+                { keywords: ['watchlist', 'favorites', 'saved', 'starred'], reply: "Keep track of your favorite stocks and crypto on your customized watchlist. [My Watchlist](/watchlist)" },
+                { keywords: ['portfolio', 'holdings', 'my assets', 'tracking', 'pnl'], reply: "Track your actual holdings and calculate your Profit & Loss. [My Portfolio](/portfolio)" },
+                { keywords: ['volatility', 'drops', 'jumps', 'crash', 'mooning', 'pump', 'dump'], reply: "Keep an eye on sudden market movements and extreme volume changes using our volatility scanner. [View Volatility Alerts](/volatility)" },
+                { keywords: ['alert', 'notification', 'trigger', 'email me', 'rules'], reply: "You can set custom price targets and get notified via email or push notifications. [Configure Price Alerts](/alerts)" },
+                { keywords: ['analytics', 'ai', 'prediction', 'correlation', 'matrix', 'smart'], reply: "Dive deep into asset correlations and AI-driven market predictions. [Advanced Analytics](/analytics)" },
+                { keywords: ['settings', 'profile', 'password', 'account', 'theme'], reply: "You can update your profile, change your password, and adjust notification preferences in settings. [Account Settings](/settings)" },
+                { keywords: ['feedback', 'bug', 'issue', 'support', 'help', 'idea'], reply: "Found a bug or have a suggestion? We'd love to hear from you! [Submit Feedback](/feedback)" },
+                { keywords: ['bitcoin', 'btc', 'crypto'], reply: "*(Mock Data)* Bitcoin (BTC) is currently showing high volatility. Check out the latest crypto trends here: [Open Heatmap](/heatmap)" },
+                { keywords: ['hello', 'hi', 'hey'], reply: "Hello there! I'm operating in strictly Offline Mode right now, but I can still help you navigate the entire MarketVue platform. Where would you like to go?" }
+            ];
+
+            let mockReply = "I am currently in **Offline Demo Mode** because my AI API is disconnected. I can't analyze external live data, but I can still help you navigate the website!\n\nFor example, try asking me: *Where is my portfolio?*";
+
+            for (const route of routes) {
+                if (route.keywords.some(kw => lastUserMsg.includes(kw))) {
+                    mockReply = route.reply;
+                    break;
+                }
             }
 
             responseText = mockReply;

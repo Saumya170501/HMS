@@ -80,7 +80,20 @@ export default function Watchlist() {
                 console.error("Failed to remove from watchlist:", error);
             }
         } else {
-            const updated = watchlist.filter(w => w.symbol !== asset.symbol);
+            const coinGeckoId = getCoinGeckoId(asset.symbol);
+            const upperSymbol = asset.symbol.toUpperCase();
+
+            const updated = watchlist.filter(w => {
+                const wUpper = w.symbol?.toUpperCase();
+                const wIdUpper = w.id?.toUpperCase();
+
+                // Keep the item if it does NOT match the symbol AND does NOT match the legacy coinGeckoId
+                const isMatch = wUpper === upperSymbol ||
+                    (wIdUpper === upperSymbol) ||
+                    (coinGeckoId && (wUpper === coinGeckoId.toUpperCase() || wIdUpper === coinGeckoId.toUpperCase()));
+
+                return !isMatch;
+            });
             localStorage.setItem('watchlist', JSON.stringify(updated));
             setWatchlist(updated);
             setWatchlistData(watchlistData.filter(w => w.symbol !== asset.symbol));

@@ -662,8 +662,20 @@ export default function HeatmapContainer({ paneId, title, highlightedSymbol = ''
         } else {
             // Fallback for guests
             let updated;
+            const coinGeckoId = getCoinGeckoId(asset.symbol);
+            const upperSymbol = asset.symbol.toUpperCase();
+
             if (inWatchlist) {
-                updated = watchlist.filter(w => w.symbol !== asset.symbol);
+                updated = watchlist.filter(w => {
+                    const wUpper = w.symbol?.toUpperCase();
+                    const wIdUpper = w.id?.toUpperCase();
+
+                    const isMatch = wUpper === upperSymbol ||
+                        (wIdUpper === upperSymbol) ||
+                        (coinGeckoId && (wUpper === coinGeckoId.toUpperCase() || wIdUpper === coinGeckoId.toUpperCase()));
+
+                    return !isMatch;
+                });
             } else {
                 updated = [...watchlist, {
                     symbol: asset.symbol,
