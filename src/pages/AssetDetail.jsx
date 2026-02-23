@@ -55,13 +55,14 @@ export default function AssetDetail() {
 
                     const coinGeckoId = getCoinGeckoId(symbol);
                     const upperSymbol = symbol.toUpperCase();
-                    setIsWatchlisted(watchlist.some(w => {
+                    const match = watchlist.find(w => {
                         const wUpper = w.symbol?.toUpperCase();
                         const wIdUpper = w.id?.toUpperCase();
                         return wUpper === upperSymbol ||
                             (wIdUpper === upperSymbol) ||
                             (coinGeckoId && (wUpper === coinGeckoId.toUpperCase() || wIdUpper === coinGeckoId.toUpperCase()));
-                    }));
+                    });
+                    setIsWatchlisted(match ? match.id || match.symbol : false);
                 }
 
                 // Generate chart data
@@ -111,11 +112,11 @@ export default function AssetDetail() {
         if (userId) {
             try {
                 if (isWatchlisted) {
-                    await watchlistService.removeFromWatchlist(userId, symbol);
+                    await watchlistService.removeByExactId(userId, typeof isWatchlisted === 'string' ? isWatchlisted : symbol);
                 } else {
                     await watchlistService.addToWatchlist(userId, { symbol, market, name: asset?.name });
                 }
-                setIsWatchlisted(!isWatchlisted);
+                setIsWatchlisted(isWatchlisted ? false : symbol.toUpperCase());
             } catch (error) {
                 console.error('Watchlist operation failed:', error);
             }
@@ -140,7 +141,7 @@ export default function AssetDetail() {
             } else {
                 watchlist.push({ symbol, market, name: asset?.name });
                 localStorage.setItem('watchlist', JSON.stringify(watchlist));
-                setIsWatchlisted(true);
+                setIsWatchlisted(symbol.toUpperCase());
             }
         }
     };

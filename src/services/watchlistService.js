@@ -81,9 +81,25 @@ export const watchlistService = {
     },
 
     /**
+     * Remove item by exact Firestore document ID
+     * @param {string} userId
+     * @param {string} docId
+     */
+    async removeByExactId(userId, docId) {
+        if (!userId || !docId) return;
+        try {
+            await deleteDoc(doc(db, 'users', userId, 'watchlist', docId));
+        } catch (error) {
+            console.error('Error removing exact ID from watchlist:', error);
+            throw error;
+        }
+    },
+
+    /**
      * Check if an asset is in the watchlist
      * @param {string} userId
      * @param {string} symbol
+     * @returns {Promise<string|boolean>} Returns the document ID if found, otherwise false
      */
     async isInWatchlist(userId, symbol) {
         if (!userId || !symbol) return false;
@@ -94,18 +110,18 @@ export const watchlistService = {
         try {
             // Check uppercase
             const upperSnap = await getDoc(doc(db, 'users', userId, 'watchlist', upper));
-            if (upperSnap.exists()) return true;
+            if (upperSnap.exists()) return upperSnap.id;
 
             // Check lowercase
             if (upper !== lower) {
                 const lowerSnap = await getDoc(doc(db, 'users', userId, 'watchlist', lower));
-                if (lowerSnap.exists()) return true;
+                if (lowerSnap.exists()) return lowerSnap.id;
             }
 
             // Check legacy CoinGecko ID
             if (coinGeckoId && coinGeckoId !== lower && coinGeckoId !== upper) {
                 const legacySnap = await getDoc(doc(db, 'users', userId, 'watchlist', coinGeckoId));
-                if (legacySnap.exists()) return true;
+                if (legacySnap.exists()) return legacySnap.id;
             }
 
             return false;

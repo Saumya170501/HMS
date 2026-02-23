@@ -78,7 +78,9 @@ export default function Watchlist() {
                     }
                 }
 
-                return asset ? { ...item, ...asset } : item;
+                // Preserve the original list item's ID as firestoreId, 
+                // because spreading ...asset will overwrite item.id with the API's id (e.g. 'bitcoin')
+                return asset ? { ...item, ...asset, firestoreId: item.id } : { ...item, firestoreId: item.id };
             }).filter(item => item.price);
 
             setWatchlistData(enriched);
@@ -90,23 +92,25 @@ export default function Watchlist() {
     };
 
     const removeFromWatchlist = async (asset) => {
-        const symbolOrId = asset.symbol || asset.id;
         if (currentUser) {
             try {
-                await watchlistService.removeFromWatchlist(currentUser.uid, symbolOrId);
-                // State updates via subscription
+                if (asset.firestoreId) {
+                    await watchlistService.removeByExactId(currentUser.uid, asset.firestoreId);
+                } else {
+                    const symbolOrId = asset.symbol || asset.id;
+                    await watchlistService.removeFromWatchlist(currentUser.uid, symbolOrId);
+                }
             } catch (error) {
                 console.error("Failed to remove from watchlist:", error);
             }
         } else {
             const coinGeckoId = getCoinGeckoId(asset.symbol);
-            const upperSymbol = asset.symbol.toUpperCase();
+            const upperSymbol = asset.symbol?.toUpperCase();
 
             const updated = watchlist.filter(w => {
                 const wUpper = w.symbol?.toUpperCase();
                 const wIdUpper = w.id?.toUpperCase();
 
-                // Keep the item if it does NOT match the symbol AND does NOT match the legacy coinGeckoId
                 const isMatch = wUpper === upperSymbol ||
                     (wIdUpper === upperSymbol) ||
                     (coinGeckoId && (wUpper === coinGeckoId.toUpperCase() || wIdUpper === coinGeckoId.toUpperCase()));
@@ -143,7 +147,14 @@ export default function Watchlist() {
     }
 
     return (
-        <div className="p-6 space-y-6 animate-fadeIn">
+        <div className="p-6 space-y-6 animate-fadeIn relative">
+            {/* Debug Panel */}
+            {debugLog && (
+                <div className="fixed bottom-4 right-4 z-50 bg-black/90 text-green-400 font-mono text-[10px] p-4 rounded max-w-sm max-h-60 overflow-y-auto whitespace-pre-wrap">
+                    {debugLog}
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>

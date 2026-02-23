@@ -654,11 +654,12 @@ export default function HeatmapContainer({ paneId, title, highlightedSymbol = ''
         const upper = symbol.toUpperCase();
         const coinGeckoId = getCoinGeckoId(symbol);
 
-        return watchlist.some(w =>
+        const match = watchlist.find(w =>
             w.symbol.toUpperCase() === upper ||
             (w.id && w.id.toUpperCase() === upper) ||
             (coinGeckoId && w.id && w.id.toLowerCase() === coinGeckoId.toLowerCase())
         );
+        return match ? match.id || match.symbol : false;
     }, [watchlist]);
 
     const toggleWatchlist = useCallback(async (asset) => {
@@ -667,7 +668,7 @@ export default function HeatmapContainer({ paneId, title, highlightedSymbol = ''
         if (currentUser) {
             try {
                 if (inWatchlist) {
-                    await watchlistService.removeFromWatchlist(currentUser.uid, asset.symbol);
+                    await watchlistService.removeByExactId(currentUser.uid, typeof inWatchlist === 'string' ? inWatchlist : asset.symbol);
                 } else {
                     await watchlistService.addToWatchlist(currentUser.uid, {
                         symbol: asset.symbol.toUpperCase(),
