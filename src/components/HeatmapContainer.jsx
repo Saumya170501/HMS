@@ -6,7 +6,7 @@ import { ResponsiveTreeMap } from '@nivo/treemap';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import useMarketStore from '../store';
 import useThemeStore from '../hooks/useThemeStore';
-import { getCoinGeckoId } from '../config/cryptoMapping';
+import { getCoinGeckoId, getSymbolFromId } from '../config/cryptoMapping';
 import ConnectionIndicator from './ConnectionIndicator';
 import MarketSelector from './MarketSelector';
 import apiManager from '../services/apiManager';
@@ -622,7 +622,26 @@ export default function HeatmapContainer({ paneId, title, highlightedSymbol = ''
                 setWatchlist(list);
             });
         } else {
-            const stored = JSON.parse(localStorage.getItem('watchlist') || '[]');
+            let stored = JSON.parse(localStorage.getItem('watchlist') || '[]');
+
+            // Auto-migrate legacy CoinGecko IDs to standard Symbols
+            let wasMigrated = false;
+            stored = stored.map(item => {
+                const idAsSymbol = getSymbolFromId(item.id);
+                const symbolAsSymbol = getSymbolFromId(item.symbol);
+                const mappedSymbol = idAsSymbol || symbolAsSymbol;
+
+                if (mappedSymbol && mappedSymbol !== item.symbol) {
+                    wasMigrated = true;
+                    return { ...item, symbol: mappedSymbol, id: mappedSymbol };
+                }
+                return item;
+            });
+
+            if (wasMigrated) {
+                localStorage.setItem('watchlist', JSON.stringify(stored));
+            }
+
             setWatchlist(stored);
         }
 

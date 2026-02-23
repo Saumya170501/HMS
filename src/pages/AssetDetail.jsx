@@ -8,6 +8,7 @@ import { TrendingUp, TrendingDown, Coins, Pickaxe, LayoutGrid, HelpCircle, Star,
 import apiManager from '../services/apiManager';
 import { useAuth } from '../context/AuthContext';
 import { watchlistService } from '../services/watchlistService';
+import { getCoinGeckoId, getSymbolFromId } from '../config/cryptoMapping';
 
 export default function AssetDetail() {
     const { market, symbol } = useParams();
@@ -32,8 +33,35 @@ export default function AssetDetail() {
                     const inWatchlist = await watchlistService.isInWatchlist(userId, symbol);
                     setIsWatchlisted(inWatchlist);
                 } else {
-                    const watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
-                    setIsWatchlisted(watchlist.some(w => w.symbol.toUpperCase() === symbol.toUpperCase()));
+                    let watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
+
+                    // Auto-migrate legacy CoinGecko IDs to standard Symbols
+                    let wasMigrated = false;
+                    watchlist = watchlist.map(item => {
+                        const idAsSymbol = getSymbolFromId(item.id);
+                        const symbolAsSymbol = getSymbolFromId(item.symbol);
+                        const mappedSymbol = idAsSymbol || symbolAsSymbol;
+
+                        if (mappedSymbol && mappedSymbol !== item.symbol) {
+                            wasMigrated = true;
+                            return { ...item, symbol: mappedSymbol, id: mappedSymbol };
+                        }
+                        return item;
+                    });
+
+                    if (wasMigrated) {
+                        localStorage.setItem('watchlist', JSON.stringify(watchlist));
+                    }
+
+                    const coinGeckoId = getCoinGeckoId(symbol);
+                    const upperSymbol = symbol.toUpperCase();
+                    setIsWatchlisted(watchlist.some(w => {
+                        const wUpper = w.symbol?.toUpperCase();
+                        const wIdUpper = w.id?.toUpperCase();
+                        return wUpper === upperSymbol ||
+                            (wIdUpper === upperSymbol) ||
+                            (coinGeckoId && (wUpper === coinGeckoId.toUpperCase() || wIdUpper === coinGeckoId.toUpperCase()));
+                    }));
                 }
 
                 // Generate chart data
