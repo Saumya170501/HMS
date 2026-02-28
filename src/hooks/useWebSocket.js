@@ -6,6 +6,7 @@ import { getAuth } from 'firebase/auth';
 import { shouldShowAlert, getAlertKey } from '../services/alertManagementService';
 
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8080';
+console.log('[WebSocket] Using URL:', WS_URL);
 const BASE_RECONNECT_DELAY = 3000;
 const MAX_RECONNECT_DELAY = 30000;
 
@@ -129,7 +130,11 @@ export const useWebSocket = () => {
     useEffect(() => {
         connect();
         return () => {
-            if (ws.current) ws.current.close();
+            // Only close if the WebSocket is actually OPEN (not CONNECTING)
+            // This prevents React Strict Mode from killing connections during handshake
+            if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+                ws.current.close();
+            }
             if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
         };
     }, [connect]);

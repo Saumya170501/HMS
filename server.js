@@ -704,26 +704,46 @@ async function fetchLivePricesOnStartup() {
 // ==========================================
 // 6. SERVER STARTUP & WEBSOCKET BROADCAST
 // ==========================================
+let serverReady = false;
+
 const server = app.listen(PORT, async () => {
     console.log(`\n🚀 HMS Consolidated Server running on http://localhost:${PORT}`);
     console.log('  Endpoints:');
     console.log('  GET /api/historical/:type/:symbol?days=30');
     console.log('  WS  ws://localhost:' + PORT);
 
-    // Fetch live prices before clients get initial data
+    // Fetch live prices before marking server as ready
     await fetchLivePricesOnStartup();
+    serverReady = true;
+
+    // Send fresh data to any clients that connected during startup
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+                type: 'initial',
+                timestamp: Date.now(),
+                data: marketData,
+                marketStatus: { stocks: true, crypto: true, commodities: true }
+            }));
+        }
+    });
 });
 
 const wss = new WebSocketServer({ server });
 
 wss.on('connection', (ws) => {
     console.log('👤 Frontend client connected');
-    ws.send(JSON.stringify({
-        type: 'initial',
-        timestamp: Date.now(),
-        data: marketData,
-        marketStatus: { stocks: true, crypto: true, commodities: true }
-    }));
+    // Only send initial data if server is ready (live prices fetched)
+    if (serverReady) {
+        ws.send(JSON.stringify({
+            type: 'initial',
+            timestamp: Date.now(),
+            data: marketData,
+            marketStatus: { stocks: true, crypto: true, commodities: true }
+        }));
+    } else {
+        console.log('  ⏳ Client connected before startup fetch complete — will receive data shortly');
+    }
 });
 
 // Broadcast loop
