@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { TrendingUp, TrendingDown, Coins, Pickaxe, LayoutGrid, Star, Search, BarChart3, ArrowRight, Trash2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Coins, Pickaxe, LayoutGrid, Star, Search, BarChart3, ArrowRight, Trash2, ChevronRight, FolderPlus } from 'lucide-react';
 import apiManager from '../services/apiManager';
+import useMarketStore from '../store';
 import { useAuth } from '../context/AuthContext';
 import { watchlistService } from '../services/watchlistService';
 import { getSymbolFromId } from '../config/cryptoMapping';
@@ -13,6 +14,24 @@ export default function Watchlist() {
     const [watchlistData, setWatchlistData] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showAll, setShowAll] = useState(false);
+
+    // Subscribe to live market data from WebSocket store
+    const marketData = useMarketStore(state => state.marketData);
+
+    // Keep watchlist prices in sync with live WebSocket data
+    useEffect(() => {
+        if (watchlistData.length === 0) return;
+        const allLive = [...(marketData.stocks || []), ...(marketData.crypto || []), ...(marketData.commodities || [])];
+        if (allLive.length === 0) return;
+
+        setWatchlistData(prev => prev.map(item => {
+            const live = allLive.find(a => a.symbol === item.symbol);
+            if (live && (live.price !== item.price || live.change !== item.change)) {
+                return { ...item, price: live.price, change: live.change };
+            }
+            return item;
+        }));
+    }, [marketData]);
 
     const formatPrice = (price) => {
         if (!price) return '$0.00';
@@ -157,7 +176,7 @@ export default function Watchlist() {
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gradient-premium mb-2">My Watchlist</h1>
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">My Watchlist</h1>
                         <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
                             {watchlistData.length} assets actively tracked
                         </p>
@@ -212,6 +231,7 @@ export default function Watchlist() {
                                                 }}
                                                 className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
                                                 title="Remove from watchlist"
+                                                aria-label={`Remove ${asset.symbol} from watchlist`}
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
@@ -256,20 +276,17 @@ export default function Watchlist() {
                         })}
                     </div>
                 ) : (
-                    <div className="bento-card bento-col-span-full p-12 flex flex-col items-center justify-center text-center">
-                        <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-full mb-4">
-                            <Star className="w-8 h-8 text-slate-400" />
+                    <div className="flex flex-col items-center justify-center py-20 px-4 text-center bento-card border-dashed border-2 border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                        <div className="w-20 h-20 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center mb-6 shadow-inner">
+                            <FolderPlus className="w-10 h-10 text-blue-500" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Your watchlist is empty</h3>
-                        <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-6">
-                            Start tracking your favorite assets to see them appear here in real-time.
+                        <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-3 tracking-tight">Your watchlist is empty</h2>
+                        <p className="text-slate-500 max-w-md mx-auto mb-8 font-medium leading-relaxed">
+                            Start tracking your favorite stocks, cryptocurrencies, and commodities to get real-time updates and insights all in one place.
                         </p>
-                        <Link
-                            to="/markets"
-                            className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-blue-500/25"
-                        >
-                            Explore Markets
-                            <ArrowRight className="w-4 h-4 ml-2" />
+                        <Link to="/" className="inline-flex items-center justify-center px-8 py-4 text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 group">
+                            Explore Heatmap
+                            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                         </Link>
                     </div>
                 )}

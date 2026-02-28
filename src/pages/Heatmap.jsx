@@ -16,90 +16,105 @@ export default function Heatmap() {
     }, []);
 
     return (
-        <div className="p-3 sm:p-4 md:p-6 h-[calc(100vh-48px)] md:h-[calc(100vh-64px)]">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-2">
-                <div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-primary">Market Heatmap</h1>
-                    <p className="hidden md:block text-secondary text-sm font-mono">Dual-viewport visualization</p>
+        <div className="p-4 sm:p-6 md:p-8 h-[calc(100vh-64px)] animate-fadeIn flex flex-col">
+            <div className="max-w-[1920px] mx-auto w-full h-full flex flex-col space-y-6">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 shrink-0">
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-3">
+                            <LayoutGrid className="w-8 h-8 text-blue-500" />
+                            Market Heatmap
+                        </h1>
+                        <p className="hidden md:block text-sm font-medium text-slate-500 dark:text-slate-400">
+                            Dual-viewport market visualization and comparison.
+                        </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 z-30">
+                        {/* Mobile Market Toggle */}
+                        {isMobile && (
+                            <div className="flex bg-white/50 dark:bg-slate-800/50 p-1.5 rounded-xl border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm shadow-sm">
+                                {['stocks', 'crypto', 'commodities'].map((market) => (
+                                    <button
+                                        key={market}
+                                        onClick={() => setMobileMarket(market)}
+                                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${mobileMarket === market
+                                            ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25 scale-105'
+                                            : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-700/50'
+                                            }`}
+                                    >
+                                        {market.charAt(0).toUpperCase() + market.slice(1)}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* List/Grid Toggle (Mobile) */}
+                        {isMobile && (
+                            <button
+                                onClick={() => setListView(!listView)}
+                                className="p-2.5 bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl transition-all border border-slate-200/50 dark:border-slate-700/50 shadow-sm backdrop-blur-md"
+                                title={listView ? 'Grid View' : 'List View'}
+                            >
+                                {listView ? <LayoutGrid className="w-4 h-4" /> : <List className="w-4 h-4" />}
+                            </button>
+                        )}
+
+                        {/* Search-to-Zoom */}
+                        <div className="relative flex-1 sm:flex-none">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Highlight ticker"
+                                className="w-full sm:w-64 pl-9 pr-8 py-2.5 bg-white/80 dark:bg-slate-800/80 border border-slate-200/50 dark:border-slate-700/50 rounded-xl text-sm font-bold text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all shadow-sm backdrop-blur-md"
+                            />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                    {/* Mobile Market Toggle */}
-                    {isMobile && (
-                        <div className="flex bg-slate-200 dark:bg-slate-800/60 rounded-lg p-0.5 border border-border">
-                            {['stocks', 'crypto', 'commodities'].map((market) => (
-                                <button
-                                    key={market}
-                                    onClick={() => setMobileMarket(market)}
-                                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${mobileMarket === market
-                                        ? 'bg-blue-600 text-white shadow-md'
-                                        : 'text-secondary hover:text-primary'
-                                        }`}
-                                >
-                                    {market.charAt(0).toUpperCase() + market.slice(1)}
-                                </button>
-                            ))}
-                        </div>
-                    )}
+                {/* Heatmap Content */}
+                <div className="flex-1 min-h-0 bento-card p-2 sm:p-4 group/heatmap border border-slate-200/50 dark:border-slate-700/50 shadow-sm relative overflow-hidden flex flex-col">
+                    {/* Decorative glow */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-blue-500/5 blur-[100px] rounded-full pointer-events-none" />
 
-                    {/* List/Grid Toggle (Mobile) */}
-                    {isMobile && (
-                        <button
-                            onClick={() => setListView(!listView)}
-                            className="p-2 bg-slate-100 dark:bg-slate-800/60 border border-border rounded-lg text-secondary hover:text-primary transition-colors"
-                            title={listView ? 'Grid View' : 'List View'}
-                        >
-                            {listView ? <LayoutGrid className="w-4 h-4" /> : <List className="w-4 h-4" />}
-                        </button>
-                    )}
-
-                    {/* Search-to-Zoom */}
-                    <div className="relative flex-1 sm:flex-none">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Highlight ticker"
-                            className="w-full sm:w-56 pl-8 pr-8 py-1.5 bg-slate-100 dark:bg-slate-800/60 border border-border rounded-lg text-sm text-primary placeholder-slate-400 dark:placeholder-slate-500 font-mono focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-colors"
-                        />
-                        {searchQuery && (
-                            <button
-                                onClick={() => setSearchQuery('')}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
+                    <div className="relative z-10 flex-1 min-h-0 flex flex-col">
+                        {isMobile ? (
+                            /* Mobile: Single Viewport */
+                            <div className="flex-1 w-full h-full min-h-0">
+                                <HeatmapContainer
+                                    paneId="mobile"
+                                    title={mobileMarket.charAt(0).toUpperCase() + mobileMarket.slice(1)}
+                                    highlightedSymbol={highlightedSymbol}
+                                    mobileListView={listView}
+                                    mobileLimit={15}
+                                    defaultMarket={mobileMarket}
+                                />
+                            </div>
+                        ) : (
+                            /* Desktop: Dual Viewport */
+                            <div className="flex-1 flex gap-4 w-full h-full min-h-0">
+                                <div className="flex-1 min-w-0 h-full">
+                                    <HeatmapContainer paneId="left" title="Left Viewport" highlightedSymbol={highlightedSymbol} />
+                                </div>
+                                <div className="w-px bg-slate-200/50 dark:bg-slate-700/50 shrink-0 shadow-[0_0_10px_rgba(255,255,255,0.1)]" />
+                                <div className="flex-1 min-w-0 h-full">
+                                    <HeatmapContainer paneId="right" title="Right Viewport" highlightedSymbol={highlightedSymbol} />
+                                </div>
+                            </div>
                         )}
                     </div>
                 </div>
             </div>
-
-            {/* Heatmap Content */}
-            {isMobile ? (
-                /* Mobile: Single Viewport */
-                <div className="h-[calc(100%-80px)]">
-                    <HeatmapContainer
-                        paneId="mobile"
-                        title={mobileMarket.charAt(0).toUpperCase() + mobileMarket.slice(1)}
-                        highlightedSymbol={highlightedSymbol}
-                        mobileListView={listView}
-                        mobileLimit={15}
-                        defaultMarket={mobileMarket}
-                    />
-                </div>
-            ) : (
-                /* Desktop: Dual Viewport */
-                <div className="heatmap-dual flex gap-4 h-[calc(100%-60px)]">
-                    <div className="heatmap-pane flex-1 min-w-0">
-                        <HeatmapContainer paneId="left" title="Left Viewport" highlightedSymbol={highlightedSymbol} />
-                    </div>
-                    <div className="heatmap-divider w-px bg-dark-border" />
-                    <div className="heatmap-pane flex-1 min-w-0">
-                        <HeatmapContainer paneId="right" title="Right Viewport" highlightedSymbol={highlightedSymbol} />
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

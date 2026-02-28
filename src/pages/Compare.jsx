@@ -17,6 +17,7 @@ import {
     generateWhatIfInsight,
     alignAndFillHistory
 } from '../services/analysisService';
+import { withFormattedDates } from '../utils/chartUtils';
 
 // Market Type Selector Button Group
 const MarketTypeSelector = ({ value, onChange, label }) => (
@@ -51,7 +52,7 @@ const AssetDropdown = ({ value, onChange, assets, label, disabled }) => (
             value={value}
             onChange={(e) => onChange(e.target.value)}
             disabled={disabled}
-            className="w-full bg-slate-100 dark:bg-slate-800 border border-border rounded-lg px-4 py-2.5 text-sm text-primary font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            className="w-full bg-slate-100 dark:bg-slate-800 border border-border rounded-lg px-4 py-2.5 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
         >
             <option value="">Select an asset</option>
             {assets.map((asset) => (
@@ -102,13 +103,13 @@ const TwoStepAssetSelector = ({
                 {selectedAsset && (
                     <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-border">
                         <div className="flex items-center justify-between">
-                            <span className="font-mono font-bold text-lg text-primary">{selectedAsset.symbol}</span>
-                            <span className={`font-mono ${selectedAsset.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                            <span className="font-bold text-lg text-primary">{selectedAsset.symbol}</span>
+                            <span className={`${selectedAsset.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                 {selectedAsset.change >= 0 ? '+' : ''}{selectedAsset.change?.toFixed(2)}%
                             </span>
                         </div>
                         <div className="text-sm text-secondary">{selectedAsset.name}</div>
-                        <div className="text-xl font-mono text-primary mt-2">${selectedAsset.price?.toLocaleString()}</div>
+                        <div className="text-xl text-primary mt-2">${selectedAsset.price?.toLocaleString()}</div>
                     </div>
                 )}
             </div>
@@ -144,10 +145,10 @@ const MetricRow = ({ label, value1, value2, format = 'number' }) => {
     return (
         <div className="grid grid-cols-3 gap-4 py-3 border-b border-border last:border-0">
             <div className="text-secondary text-sm">{label}</div>
-            <div className={`font-mono text-sm text-center ${value1 !== null && isValue1Better() ? 'text-green-600 dark:text-green-400' : 'text-primary'}`}>
+            <div className={`text-sm text-center ${value1 !== null && isValue1Better() ? 'text-green-600 dark:text-green-400' : 'text-primary'}`}>
                 {formatValue(value1)}
             </div>
-            <div className={`font-mono text-sm text-center ${value2 !== null && !isValue1Better() && value2 !== value1 ? 'text-green-600 dark:text-green-400' : 'text-primary'}`}>
+            <div className={`text-sm text-center ${value2 !== null && !isValue1Better() && value2 !== value1 ? 'text-green-600 dark:text-green-400' : 'text-primary'}`}>
                 {formatValue(value2)}
             </div>
         </div>
@@ -191,7 +192,7 @@ const CorrelationBadge = ({ value }) => {
 
     return (
         <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg ${getColor()}`}>
-            <span className="text-2xl font-bold font-mono">{typeof value === 'number' ? value.toFixed(4) : '0.0000'}</span>
+            <span className="text-2xl font-bold ">{typeof value === 'number' ? value.toFixed(4) : '0.0000'}</span>
             <span className="text-xs uppercase tracking-wider">{labels[strength]} {direction === 'positive' ? 'Positive' : 'Negative'}</span>
         </div>
     );
@@ -237,7 +238,6 @@ export default function Compare() {
     // Chart and analysis state
     const [chartData, setChartData] = useState([]);
     const [chartTimeframe, setChartTimeframe] = useState('1M');
-    const [correlationTimeframe, setCorrelationTimeframe] = useState('90');
     const [isLoading, setIsLoading] = useState(true);
 
     // Analysis state
@@ -322,9 +322,10 @@ export default function Compare() {
                 return;
             }
 
+            const tfDays = chartTimeframe === '1W' ? 7 : chartTimeframe === '1M' ? 30 : chartTimeframe === '3M' ? 90 : 365;
             setIsAnalyzing(true);
             try {
-                const days = parseInt(correlationTimeframe);
+                const days = tfDays;
 
                 // Fetch historical data
                 const [history1, history2] = await Promise.all([
@@ -354,7 +355,7 @@ export default function Compare() {
                 const fullHistory2 = appendLivePrice(history2, asset2.price);
 
                 // ALIGN DATA BY DATE (fix for Crypto vs Stocks)
-                const { aligned1, aligned2 } = alignAndFillHistory(fullHistory1, fullHistory2);
+                const { aligned1, aligned2, commonDates } = alignAndFillHistory(fullHistory1, fullHistory2);
 
                 // Calculate returns from aligned prices
                 const returns1 = calculateDailyReturns(aligned1);
@@ -383,8 +384,9 @@ export default function Compare() {
                     returns1,
                     returns2,
                     days,
-                    history1: fullHistory1, // Use the extended history for charting
-                    history2: fullHistory2
+                    history1: aligned1,
+                    history2: aligned2,
+                    commonDates
                 });
 
                 // Perform what-if analysis
@@ -400,33 +402,33 @@ export default function Compare() {
         }
 
         performAnalysis();
-    }, [asset1, asset2, correlationTimeframe]);
+    }, [asset1, asset2, chartTimeframe]);
 
-    // Generate chart data when chart timeframe changes
+    // Generate chart data from correlation data (which now uses the same timeframe)
     useEffect(() => {
         if (!correlationData || !asset1 || !asset2) return;
 
-        const chartDays = chartTimeframe === '1W' ? 7 : chartTimeframe === '1M' ? 30 : chartTimeframe === '3M' ? 90 : 365;
-        const { returns1, returns2, history1 } = correlationData;
+        const { returns1, returns2, history1: aligned1, history2: aligned2 } = correlationData;
 
         const chartPoints = [];
         let cumReturn1 = 0;
         let cumReturn2 = 0;
 
-        const limit = Math.min(returns1.length, returns2.length, chartDays);
-        const startIdx = Math.max(0, returns1.length - chartDays);
+        // Use commonDates stored in correlationData
+        const dates = correlationData.commonDates || [];
 
-        for (let i = startIdx; i < returns1.length; i++) {
+        for (let i = 0; i < returns1.length && i < returns2.length; i++) {
             cumReturn1 += returns1[i];
             cumReturn2 += returns2[i];
             chartPoints.push({
-                date: history1[i + 1]?.date || `Day ${i + 1}`,
+                date: dates[i + 1] || `Day ${i + 1}`,
                 [asset1.symbol]: (cumReturn1 * 100).toFixed(2),
                 [asset2.symbol]: (cumReturn2 * 100).toFixed(2)
             });
         }
-        setChartData(chartPoints);
-    }, [correlationData, chartTimeframe, asset1, asset2]);
+
+        setChartData(withFormattedDates(chartPoints, 'date', chartTimeframe));
+    }, [correlationData, asset1, asset2, chartTimeframe]);
 
     // Update what-if when move percentage changes
     useEffect(() => {
@@ -445,7 +447,7 @@ export default function Compare() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    <span className="text-slate-400 font-mono">Loading assets...</span>
+                    <span className="text-slate-400 ">Loading assets...</span>
                 </div>
             </div>
         );
@@ -456,7 +458,7 @@ export default function Compare() {
             {/* Header */}
             <div>
                 <h1 className="text-2xl font-bold text-primary">Compare Assets</h1>
-                <p className="text-secondary text-sm font-mono">Select market type first, then choose an asset</p>
+                <p className="text-secondary text-sm ">Select market type first, then choose an asset</p>
             </div>
 
             {/* Two-Step Asset Selectors */}
@@ -498,7 +500,7 @@ export default function Compare() {
                                 <button
                                     key={tf}
                                     onClick={() => setChartTimeframe(tf)}
-                                    className={`px-3 py-1 text-sm font-mono rounded transition-colors ${chartTimeframe === tf
+                                    className={`px-3 py-1 text-sm rounded transition-colors ${chartTimeframe === tf
                                         ? 'bg-blue-600 text-white'
                                         : 'bg-slate-100 dark:bg-slate-800 text-secondary hover:text-primary hover:bg-slate-200 dark:hover:bg-slate-700'
                                         }`}
@@ -532,7 +534,7 @@ export default function Compare() {
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} />
                                     <XAxis
-                                        dataKey="date"
+                                        dataKey="formattedDate"
                                         stroke="var(--text-secondary)"
                                         tick={{ fill: 'var(--text-secondary)', fontSize: 12 }}
                                         interval="preserveStartEnd"
@@ -583,7 +585,7 @@ export default function Compare() {
                                     {/* Correlation Value Display */}
                                     <div className="flex items-center gap-3">
                                         <span className="text-secondary text-sm">Correlation:</span>
-                                        <span className="font-mono font-bold text-xl text-primary">
+                                        <span className="font-bold text-xl text-primary">
                                             {typeof correlationData.correlation === 'number' ? correlationData.correlation.toFixed(4) : '0.0000'}
                                         </span>
                                         <span className="text-secondary text-sm">over {correlationData.days} days</span>
@@ -593,30 +595,7 @@ export default function Compare() {
                                     <MiniCorrelationBadge correlation={correlationData.correlation} />
                                 </div>
 
-                                {/* Correlation Timeframe Selector */}
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs text-secondary uppercase tracking-wider">Correlation Period:</span>
-                                    <div className="flex gap-1">
-                                        {[
-                                            { value: '30', label: '30D' },
-                                            { value: '60', label: '60D' },
-                                            { value: '90', label: '90D' },
-                                            { value: '180', label: '6M' },
-                                            { value: '365', label: '1Y' }
-                                        ].map((option) => (
-                                            <button
-                                                key={option.value}
-                                                onClick={() => setCorrelationTimeframe(option.value)}
-                                                className={`px-2 py-1 text-xs font-mono rounded transition-colors ${correlationTimeframe === option.value
-                                                    ? 'bg-purple-600 text-white'
-                                                    : 'bg-slate-100 dark:bg-slate-800 text-secondary hover:text-primary hover:bg-slate-200 dark:hover:bg-slate-700'
-                                                    }`}
-                                            >
-                                                {option.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
+
                             </div>
                         </div>
                     )}
@@ -648,7 +627,7 @@ export default function Compare() {
                             {correlationData.trend !== 'stable' && (
                                 <div>
                                     <div className="text-xs text-secondary uppercase tracking-wider mb-2">Previous Period</div>
-                                    <span className="font-mono text-secondary">
+                                    <span className="text-secondary">
                                         {typeof correlationData.previousCorrelation === 'number' ? correlationData.previousCorrelation.toFixed(4) : 'N/A'}
                                     </span>
                                 </div>
@@ -698,12 +677,12 @@ export default function Compare() {
                         {/* Question */}
                         <div className="mb-6">
                             <div className="text-primary mb-4">
-                                If <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{asset1.symbol}</span> moves
+                                If <span className="font-bold text-blue-600 dark:text-blue-400">{asset1.symbol}</span> moves
                                 <div className="inline-flex items-center mx-2">
                                     <select
                                         value={whatIfMove}
                                         onChange={(e) => setWhatIfMove(parseFloat(e.target.value))}
-                                        className="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded px-3 py-1 font-mono text-green-600 dark:text-green-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded px-3 py-1 text-green-600 dark:text-green-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     >
                                         <option value={-10}>-10%</option>
                                         <option value={-5}>-5%</option>
@@ -715,7 +694,7 @@ export default function Compare() {
                                         <option value={10}>+10%</option>
                                     </select>
                                 </div>
-                                , what typically happens to <span className="font-mono font-bold text-amber-600 dark:text-amber-400">{asset2.symbol}</span>?
+                                , what typically happens to <span className="font-bold text-amber-600 dark:text-amber-400">{asset2.symbol}</span>?
                             </div>
                         </div>
 
@@ -733,7 +712,7 @@ export default function Compare() {
                                         <div className="flex items-center gap-4 mb-3">
                                             <div className="bg-white dark:bg-slate-900 rounded-lg px-4 py-2 border border-slate-200 dark:border-slate-800">
                                                 <div className="text-xs text-secondary uppercase tracking-wider">Expected Move</div>
-                                                <div className={`text-2xl font-mono font-bold ${whatIfResult.avgMove >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                <div className={`text-2xl font-bold ${whatIfResult.avgMove >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                                     {whatIfResult.avgMove >= 0 ? '+' : ''}{typeof whatIfResult.avgMove === 'number' ? whatIfResult.avgMove.toFixed(2) : '0.00'}%
                                                 </div>
                                             </div>
@@ -742,13 +721,13 @@ export default function Compare() {
                                                 <>
                                                     <div className="bg-white dark:bg-slate-900 rounded-lg px-4 py-2 border border-slate-200 dark:border-slate-800">
                                                         <div className="text-xs text-secondary uppercase tracking-wider">Same Direction</div>
-                                                        <div className="text-2xl font-mono font-bold text-primary">
+                                                        <div className="text-2xl font-bold text-primary">
                                                             {whatIfResult.probability}%
                                                         </div>
                                                     </div>
                                                     <div className="bg-white dark:bg-slate-900 rounded-lg px-4 py-2 border border-slate-200 dark:border-slate-800">
                                                         <div className="text-xs text-secondary uppercase tracking-wider">Sample Size</div>
-                                                        <div className="text-2xl font-mono font-bold text-primary">
+                                                        <div className="text-2xl font-bold text-primary">
                                                             {whatIfResult.count}
                                                         </div>
                                                     </div>
@@ -782,11 +761,11 @@ export default function Compare() {
                         <div className="grid grid-cols-3 gap-4 pb-3 border-b border-border mb-2">
                             <div className="text-secondary text-sm font-medium">Metric</div>
                             <div className="text-center">
-                                <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{asset1.symbol}</span>
+                                <span className="font-bold text-blue-600 dark:text-blue-400">{asset1.symbol}</span>
                                 <span className="text-xs text-secondary ml-1">({asset1MarketType})</span>
                             </div>
                             <div className="text-center">
-                                <span className="font-mono font-bold text-amber-600 dark:text-amber-400">{asset2.symbol}</span>
+                                <span className="font-bold text-amber-600 dark:text-amber-400">{asset2.symbol}</span>
                                 <span className="text-xs text-secondary ml-1">({asset2MarketType})</span>
                             </div>
                         </div>

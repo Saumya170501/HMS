@@ -49,7 +49,7 @@ const RadioGroup = ({ label, options, value, onChange }) => (
                 <button
                     key={option.value}
                     onClick={() => onChange(option.value)}
-                    className={`px-4 py-2 text-sm font-mono rounded-lg transition-colors ${value === option.value
+                    className={`px-4 py-2 text-sm rounded-lg transition-colors ${value === option.value
                         ? 'bg-blue-600 text-white'
                         : 'bg-slate-100 dark:bg-slate-800 text-secondary hover:text-primary hover:bg-slate-200 dark:hover:bg-slate-700'
                         }`}
@@ -73,7 +73,7 @@ const Select = ({ label, description, options, value, onChange }) => (
         <select
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm text-primary font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2.5 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
             {options.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -198,7 +198,7 @@ export default function Settings() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-primary">Settings</h1>
-                    <p className="text-secondary text-sm font-mono">Customize your dashboard experience</p>
+                    <p className="text-secondary text-sm ">Customize your dashboard experience</p>
                 </div>
                 <div className="flex items-center gap-3">
                     {saved && (

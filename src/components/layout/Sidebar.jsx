@@ -60,7 +60,7 @@ export default function Sidebar() {
                         <LineChart className="w-6 h-6 text-white" />
                     </div>
                     <div className="brand-text">
-                        <h1 className="text-lg font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent font-sans tracking-tight">
+                        <h1 className="text-lg font-bold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent tracking-tight">
                             MarketVue
                         </h1>
                         <p className="text-[10px] text-secondary font-medium uppercase tracking-wider">Pro Dashboard</p>
@@ -126,8 +126,8 @@ export default function Sidebar() {
                         <NavLink to="/terms" className="hover:text-primary transition-colors">Terms</NavLink>
                         <NavLink to="/feedback" className="hover:text-primary transition-colors font-bold text-blue-500">Feedback</NavLink>
                     </div>
-                    <div className="text-[10px] text-secondary text-center font-medium">
-                        15-min delayed data
+                    <div className="text-[10px] text-secondary text-center font-medium leading-tight mt-1">
+                        Equities/Commodities delayed 15m
                     </div>
                 </div>
             </div>

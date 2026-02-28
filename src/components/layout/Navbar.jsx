@@ -81,7 +81,7 @@ export default function Navbar() {
 
     return (
         <>
-            <header className="py-2 bg-surface border-b border-border flex items-center justify-between px-3 sm:px-4 md:px-6 sticky top-0 z-10 transition-colors duration-300">
+            <header className="py-2 bg-surface border-b border-border flex items-center justify-between px-3 sm:px-4 md:px-6 sticky top-0 z-40 transition-colors duration-300">
                 {/* Search Bar */}
                 <div className="flex-1 max-w-[200px] sm:max-w-sm md:max-w-xl">
                     <SearchBar onSelect={(asset) => navigate(`/asset/${asset.market}/${asset.symbol}`)} />
@@ -92,6 +92,7 @@ export default function Navbar() {
                     {/* Theme Toggle */}
                     <button
                         onClick={toggleTheme}
+                        aria-label="Toggle dark mode"
                         className="touch-target p-2 text-secondary hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                     >
                         {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
@@ -99,14 +100,15 @@ export default function Navbar() {
 
                     {/* Time Display — hidden on mobile, condensed on tablet */}
                     <div className="hidden sm:block text-right">
-                        <div className="text-sm md:text-lg font-mono text-primary">{formatTime(currentTime)}</div>
-                        <div className="hidden md:block text-xs font-mono text-secondary">{formatDate(currentTime)} EST</div>
+                        <div className="text-sm md:text-lg text-primary">{formatTime(currentTime)}</div>
+                        <div className="hidden md:block text-xs text-secondary">{formatDate(currentTime)} EST</div>
                     </div>
 
                     {/* Notifications */}
                     <div className="relative">
                         <button
                             onClick={() => setShowDropdown(!showDropdown)}
+                            aria-label="View notifications"
                             className="touch-target p-2 text-secondary hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors relative"
                         >
                             <Bell className="w-5 h-5" />
@@ -216,6 +218,7 @@ export default function Navbar() {
                     <div className="relative">
                         <button
                             onClick={() => setShowProfileMenu(!showProfileMenu)}
+                            aria-label="User profile menu"
                             className="flex items-center gap-3 hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-xl transition-colors"
                         >
                             {currentUser?.photoURL ? (
@@ -246,7 +249,7 @@ export default function Navbar() {
                         {showProfileMenu && (
                             <>
                                 <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)} />
-                                <div className="absolute right-0 mt-2 w-56 bg-surface border border-border rounded-xl shadow-xl overflow-hidden z-50 animate-fadeIn">
+                                <div className="absolute right-0 mt-2 w-56 bg-surface border border-border rounded-xl shadow-xl overflow-hidden z-[100] animate-fadeIn">
 
                                     {/* User header */}
                                     <div className="p-3 border-b border-border bg-slate-50 dark:bg-slate-900/50">

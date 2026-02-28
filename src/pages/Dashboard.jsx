@@ -158,7 +158,7 @@ export default function Dashboard() {
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gradient-premium mb-2">
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
                             Global Markets
                         </h1>
                         <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
@@ -199,7 +199,7 @@ export default function Dashboard() {
                     </div>
 
                     {/* 2. Top Movers Module (Tall Right Column) */}
-                    <div className="bento-card bento-col-span-full md:col-span-4 xl:col-span-3 bento-row-span-4 flex flex-col">
+                    <div className="bento-card bento-col-span-full md:col-span-4 xl:col-span-3 bento-row-span-4 flex flex-col min-h-[635px]">
                         <div className="p-6 border-b border-slate-200/50 dark:border-slate-800/50 flex flex-col gap-4 bg-slate-50/50 dark:bg-slate-900/20 backdrop-blur-md">
                             <h3 className="text-xl font-bold flex items-center text-slate-900 dark:text-white">
                                 <Zap className="w-5 h-5 text-yellow-500 mr-2" />
@@ -227,12 +227,12 @@ export default function Dashboard() {
                                         <div className="flex items-center gap-4">
                                             <AssetIcon symbol={asset.symbol} market={selectedTrendingMarket} size={40} className="group-hover:scale-110 transition-transform shadow-sm" />
                                             <div>
-                                                <div className="font-mono font-bold text-slate-900 dark:text-white text-base group-hover:text-blue-500 transition-colors uppercase">{asset.symbol}</div>
+                                                <div className="font-bold text-slate-900 dark:text-white text-base group-hover:text-blue-500 transition-colors uppercase">{asset.symbol}</div>
                                                 <div className="text-xs font-medium text-slate-500 dark:text-slate-400 line-clamp-1 max-w-[120px]">{asset.name}</div>
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <div className="font-mono font-bold text-slate-900 dark:text-white">{formatPrice(asset.price)}</div>
+                                            <div className="font-bold text-slate-900 dark:text-white">{formatPrice(asset.price)}</div>
                                             <div className={`text-sm font-bold flex items-center justify-end mt-1 ${asset.change >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                                                 {asset.change >= 0 ? '+' : ''}{asset.change?.toFixed(2)}%
                                             </div>
@@ -255,7 +255,7 @@ export default function Dashboard() {
                                     <stat.icon className={`w-5 h-5 ${stat.color} group-hover:scale-125 transition-transform`} />
                                     <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{stat.title}</span>
                                 </div>
-                                <div className="text-2xl font-black text-slate-900 dark:text-white font-mono mb-2">
+                                <div className="text-2xl font-black text-slate-900 dark:text-white mb-2">
                                     {formatMarketCap(stat.data.total)}
                                 </div>
                                 <div className={`text-sm font-bold flex items-center ${stat.data.change >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>

@@ -226,7 +226,7 @@ function PersonalTab({ currentUser, updateUsername, updateUserEmail }) {
                         </button>
                     )}
                 </div>
-                <p className="text-sm text-secondary font-mono">{currentUser?.email}</p>
+                <p className="text-sm text-secondary ">{currentUser?.email}</p>
                 {currentUser?.emailVerified && (
                     <span className="inline-flex items-center gap-1 text-xs text-emerald-500 font-medium">
                         <CheckCircle2 className="w-3 h-3" /> Verified
@@ -441,7 +441,7 @@ function AccountTab({ currentUser, logout }) {
                 <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                         <span className="text-secondary">UID</span>
-                        <span className="font-mono text-xs text-primary truncate max-w-[180px]">{currentUser?.uid}</span>
+                        <span className="text-xs text-primary truncate max-w-[180px]">{currentUser?.uid}</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-secondary">Sign-in method</span>
@@ -473,7 +473,7 @@ function AccountTab({ currentUser, logout }) {
                 )}
                 {deleteStep === 1 && (
                     <div className="space-y-3">
-                        <p className="text-sm font-medium text-red-400">Are you absolutely sure? Type <span className="font-mono font-bold">DELETE</span> to confirm.</p>
+                        <p className="text-sm font-medium text-red-400">Are you absolutely sure? Type <span className="font-bold">DELETE</span> to confirm.</p>
                         <input
                             value={deleteConfirm}
                             onChange={e => setDeleteConfirm(e.target.value)}

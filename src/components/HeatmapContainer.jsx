@@ -113,7 +113,7 @@ const CorrelationPopup = ({ asset, correlations, onClose, position }) => {
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                     <span className="text-xl">🔗</span>
-                    <span className="font-mono font-bold text-primary">{asset.symbol}</span>
+                    <span className="font-bold text-primary">{asset.symbol}</span>
                 </div>
                 <button
                     onClick={(e) => { e.stopPropagation(); onClose(); }}
@@ -130,10 +130,10 @@ const CorrelationPopup = ({ asset, correlations, onClose, position }) => {
                     <div key={corr.symbol} className="flex items-center justify-between py-1.5 px-2 bg-slate-100 dark:bg-slate-800/50 rounded">
                         <div className="flex items-center gap-2">
                             <span className="text-xs text-secondary w-4">{idx + 1}.</span>
-                            <span className="font-mono text-sm text-primary">{corr.symbol}</span>
+                            <span className="text-sm text-primary">{corr.symbol}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className={`font-mono text-sm font-bold ${getStrengthColor(corr.strength, corr.direction)}`}>
+                            <span className={`text-sm font-bold ${getStrengthColor(corr.strength, corr.direction)}`}>
                                 {typeof corr.correlation === 'number' ? corr.correlation.toFixed(2) : '0.00'}
                             </span>
                             <span className="text-xs text-secondary capitalize">{corr.strength}</span>
@@ -225,7 +225,7 @@ const ContextMenu = ({ asset, position, isWatchlisted, onClose, onToggleWatchlis
             onClick={(e) => e.stopPropagation()}
         >
             <div className="px-3 py-2 border-b border-border">
-                <div className="font-mono font-bold text-primary text-sm">{asset.symbol}</div>
+                <div className="font-bold text-primary text-sm">{asset.symbol}</div>
                 <div className="text-xs text-secondary">{asset.name}</div>
             </div>
 
@@ -341,7 +341,7 @@ const HeatmapTooltip = ({ node }) => {
                     <div className="text-xs text-secondary max-w-[120px] truncate">{node.data.name}</div>
                 </div>
                 <div className="text-right">
-                    <div className="font-mono font-bold text-primary">{node.data.isOther ? 'Aggregated' : formatPrice(node.data.price)}</div>
+                    <div className="font-bold text-primary">{node.data.isOther ? 'Aggregated' : formatPrice(node.data.price)}</div>
                     <div className={`text-xs font-bold ${node.data.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                         {node.data.change > 0 ? '+' : ''}{node.data.change}%
                     </div>
@@ -847,7 +847,7 @@ export default function HeatmapContainer({ paneId, title, highlightedSymbol = ''
             {/* Market Label */}
             <div className="px-3 sm:px-4 py-1.5 sm:py-2 bg-transparent border-b border-border flex flex-wrap items-center justify-between gap-1">
                 <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-xs sm:text-sm text-secondary font-mono truncate">
+                    <span className="text-xs sm:text-sm text-secondary truncate">
                         {marketLabels[selectedMarket]}
                     </span>
                     {!isLive && selectedMarket === 'stocks' && (
@@ -859,7 +859,7 @@ export default function HeatmapContainer({ paneId, title, highlightedSymbol = ''
                 <div className="flex items-center gap-2">
                     <span className="hidden sm:inline text-xs text-secondary">Click asset for options</span>
                     {lastUpdate && (
-                        <span className="text-[10px] sm:text-xs text-secondary font-mono">
+                        <span className="text-[10px] sm:text-xs text-secondary ">
                             {lastUpdate.toLocaleTimeString()}
                         </span>
                     )}
@@ -892,59 +892,90 @@ export default function HeatmapContainer({ paneId, title, highlightedSymbol = ''
                             <div className="bg-slate-800/30 rounded-lg flex-[1] animate-pulse" style={{ animationDelay: '450ms' }} />
                         </div>
                         <div className="flex items-center justify-center pt-1">
-                            <span className="text-xs text-slate-600 font-mono animate-pulse">Loading {selectedMarket} data…</span>
+                            <span className="text-xs text-slate-600 animate-pulse">Loading {selectedMarket} data…</span>
                         </div>
                     </div>
                 ) : marketData.length > 0 ? (
-                    <>
-                        <ResponsiveTreeMap
-                            data={treemapData}
-                            identity="id"
-                            value="value"
-                            valueFormat=" >-.2s"
-                            tile="squarify"
-                            leavesOnly={true}
-                            innerPadding={3}
-                            outerPadding={3}
-                            borderWidth={0}
-                            enableLabel={false}
-                            nodeComponent={NodeWithClick}
-                            colors={(node) => getChangeColor(node.data.change || 0)}
-                            animate={true}
-                            motionConfig="gentle"
-                            tooltip={HeatmapTooltip} // Added custom tooltip
-                        />
-
-                        {/* Correlation Popup is now rendered via Portal in its component */}
-                        {selectedAsset && (
-                            <CorrelationPopup
-                                asset={selectedAsset}
-                                correlations={correlations}
-                                onClose={() => setSelectedAsset(null)}
-                                position={popupPosition}
+                    mobileListView ? (
+                        <div className="flex flex-col h-full overflow-y-auto scrollbar-hide p-2 space-y-2 pb-20">
+                            {marketData.slice(0, mobileLimit || 15).map((asset) => (
+                                <div
+                                    key={asset.symbol}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedAsset(asset);
+                                        setPopupPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+                                    }}
+                                    className="flex justify-between items-center p-4 bg-white/50 dark:bg-slate-800/40 rounded-xl active:bg-slate-100 dark:active:bg-slate-700 transition-colors border border-slate-200/50 dark:border-slate-700/50 shadow-sm"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-white shadow-inner ${asset.change >= 0 ? 'bg-gradient-to-br from-emerald-400 to-emerald-600' : 'bg-gradient-to-br from-red-400 to-red-600'}`}>
+                                            {asset.symbol.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <div className="font-bold text-slate-900 dark:text-white text-base tracking-tight">{asset.symbol}</div>
+                                            <div className="text-xs font-medium text-slate-500 dark:text-slate-400 line-clamp-1 max-w-[140px]">{asset.name}</div>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="font-black text-slate-900 dark:text-white">{formatPrice(asset.price)}</div>
+                                        <div className={`text-sm font-bold mt-0.5 ${asset.change >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                                            {asset.change > 0 ? '+' : ''}{asset.change?.toFixed(2)}%
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <>
+                            <ResponsiveTreeMap
+                                data={treemapData}
+                                identity="id"
+                                value="value"
+                                valueFormat=" >-.2s"
+                                tile="squarify"
+                                leavesOnly={true}
+                                innerPadding={3}
+                                outerPadding={3}
+                                borderWidth={0}
+                                enableLabel={false}
+                                nodeComponent={NodeWithClick}
+                                colors={(node) => getChangeColor(node.data.change || 0)}
+                                animate={true}
+                                motionConfig="gentle"
+                                tooltip={HeatmapTooltip} // Added custom tooltip
                             />
-                        )}
 
-                        {/* Context Menu (Enhanced) */}
-                        {contextMenuAsset && (
-                            <ContextMenu
-                                asset={contextMenuAsset}
-                                position={contextMenuPosition}
-                                isWatchlisted={isInWatchlist(contextMenuAsset.symbol)}
-                                onClose={() => setContextMenuAsset(null)}
-                                onToggleWatchlist={() => toggleWatchlist(contextMenuAsset)}
-                                onViewDetails={handleViewDetails}
-                                onCompare={handleCompare}
-                                onHistorical={handleHistorical}
-                                onCorrelation={() => handleShowCorrelations(contextMenuAsset)}
-                            />
-                        )}
-                    </>
-                ) : (
+                            {/* Correlation Popup is now rendered via Portal in its component */}
+                            {selectedAsset && (
+                                <CorrelationPopup
+                                    asset={selectedAsset}
+                                    correlations={correlations}
+                                    onClose={() => setSelectedAsset(null)}
+                                    position={popupPosition}
+                                />
+                            )}
+
+                            {/* Context Menu (Enhanced) */}
+                            {contextMenuAsset && (
+                                <ContextMenu
+                                    asset={contextMenuAsset}
+                                    position={contextMenuPosition}
+                                    isWatchlisted={isInWatchlist(contextMenuAsset.symbol)}
+                                    onClose={() => setContextMenuAsset(null)}
+                                    onToggleWatchlist={() => toggleWatchlist(contextMenuAsset)}
+                                    onViewDetails={handleViewDetails}
+                                    onCompare={handleCompare}
+                                    onHistorical={handleHistorical}
+                                    onCorrelation={() => handleShowCorrelations(contextMenuAsset)}
+                                />
+                            )}
+                        </>
+                    )) : (
                     <div className="flex items-center justify-center h-full text-secondary">
                         <div className="text-center">
                             <div className="text-2xl mb-2">📡</div>
-                            <span className="font-mono text-sm">No data available</span>
+                            <span className="text-sm">No data available</span>
                         </div>
                     </div>
                 )}
@@ -953,7 +984,7 @@ export default function HeatmapContainer({ paneId, title, highlightedSymbol = ''
             {/* Footer Stats */}
             {marketData.length > 0 && (
                 <div className="px-3 sm:px-4 py-1.5 sm:py-2 border-t border-border bg-transparent">
-                    <div className="flex justify-between text-[10px] sm:text-xs font-mono text-secondary">
+                    <div className="flex justify-between text-[10px] sm:text-xs text-secondary">
                         <span>{marketData.length} assets</span>
                         <span>
                             {formatMarketCap(marketData.reduce((sum, a) => sum + (a.marketCap || 0), 0))}

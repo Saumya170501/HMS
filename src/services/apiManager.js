@@ -25,8 +25,8 @@ class ApiManager {
 
         try {
             // Use the consolidated server endpoint which handles all API keys and fallbacks
-            // Default to localhost:8080 if running locally, or relative path if proxied
-            const response = await axios.get(`http://localhost:8080/api/historical/${market}/${symbol}`, {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+            const response = await axios.get(`${apiUrl}/historical/${market}/${symbol}`, {
                 params: { days }
             });
 

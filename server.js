@@ -642,13 +642,76 @@ app.post('/api/chat', async (req, res) => {
 
 
 // ==========================================
-// 5. SERVER STARTUP & WEBSOCKET BROADCAST
+// 5. FETCH LIVE PRICES ON STARTUP
 // ==========================================
-const server = app.listen(PORT, () => {
+async function fetchLivePricesOnStartup() {
+    console.log('\n⏳ Fetching live prices before serving clients...');
+
+    // 1. Crypto — Binance batch ticker (single request for all)
+    try {
+        const symbols = marketData.crypto.map(c => `"${c.symbol.toUpperCase()}USDT"`).join(',');
+        const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=[${symbols}]`;
+        const response = await axios.get(url, { timeout: 8000 });
+
+        if (Array.isArray(response.data)) {
+            response.data.forEach(ticker => {
+                const symbol = ticker.symbol.replace('USDT', '');
+                const asset = marketData.crypto.find(c => c.symbol === symbol);
+                if (asset) {
+                    asset.price = parseFloat(ticker.lastPrice);
+                    asset.change = parseFloat(ticker.priceChangePercent);
+                    asset.prevPrice = parseFloat(ticker.prevClosePrice);
+                }
+            });
+            console.log(`  ✅ Crypto: Updated ${response.data.length} coins from Binance`);
+        }
+    } catch (err) {
+        console.warn('  ⚠️ Crypto startup fetch failed:', err.message);
+    }
+
+    // 2. Stocks — Finnhub batch quotes
+    try {
+        let updatedCount = 0;
+        const stockPromises = marketData.stocks.map(async (stock) => {
+            try {
+                const url = `https://finnhub.io/api/v1/quote?symbol=${stock.symbol}&token=${FINNHUB_KEY}`;
+                const response = await axios.get(url, { timeout: 5000 });
+                if (response.data && response.data.c > 0) {
+                    stock.price = response.data.c;
+                    stock.change = response.data.dp;
+                    stock.prevPrice = response.data.pc;
+                    updatedCount++;
+                }
+            } catch (e) { /* skip individual failures */ }
+        });
+        await Promise.all(stockPromises);
+        console.log(`  ✅ Stocks: Updated ${updatedCount}/${marketData.stocks.length} from Finnhub`);
+    } catch (err) {
+        console.warn('  ⚠️ Stocks startup fetch failed:', err.message);
+    }
+
+    // 3. Commodities
+    try {
+        await updateCommodities();
+        console.log('  ✅ Commodities: Updated');
+    } catch (err) {
+        console.warn('  ⚠️ Commodities startup fetch failed:', err.message);
+    }
+
+    console.log('✅ Live prices ready — serving clients with fresh data\n');
+}
+
+// ==========================================
+// 6. SERVER STARTUP & WEBSOCKET BROADCAST
+// ==========================================
+const server = app.listen(PORT, async () => {
     console.log(`\n🚀 HMS Consolidated Server running on http://localhost:${PORT}`);
     console.log('  Endpoints:');
     console.log('  GET /api/historical/:type/:symbol?days=30');
     console.log('  WS  ws://localhost:' + PORT);
+
+    // Fetch live prices before clients get initial data
+    await fetchLivePricesOnStartup();
 });
 
 const wss = new WebSocketServer({ server });
@@ -658,7 +721,8 @@ wss.on('connection', (ws) => {
     ws.send(JSON.stringify({
         type: 'initial',
         timestamp: Date.now(),
-        data: marketData
+        data: marketData,
+        marketStatus: { stocks: true, crypto: true, commodities: true }
     }));
 });
 

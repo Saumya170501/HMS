@@ -5,8 +5,8 @@ export default function PrivacyPolicy() {
         <div className="p-4 md:p-8 max-w-4xl mx-auto text-slate-300 antialiased">
             <div className="mb-10 border-b border-dark-border pb-6">
                 <h1 className="text-3xl md:text-4xl font-bold text-slate-100 mb-4 tracking-tight">Privacy Policy</h1>
-                <p className="text-sm font-mono text-slate-500">Effective Date: October 24, 2025</p>
-                <p className="text-sm font-mono text-slate-500 mt-1">Last Updated: October 24, 2025</p>
+                <p className="text-sm text-slate-500">Effective Date: October 24, 2025</p>
+                <p className="text-sm text-slate-500 mt-1">Last Updated: October 24, 2025</p>
             </div>
 
             <div className="space-y-8 leading-relaxed">

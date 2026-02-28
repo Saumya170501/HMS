@@ -66,7 +66,7 @@ export default function ProfileViewModal({ isOpen, onClose, onOpenSettings }) {
                             <Mail className="w-4 h-4 text-slate-400 flex-shrink-0" />
                             <div className="min-w-0">
                                 <p className="text-[10px] text-secondary uppercase tracking-wider font-semibold">Email</p>
-                                <p className="text-sm text-primary font-mono truncate">{currentUser?.email}</p>
+                                <p className="text-sm text-primary truncate">{currentUser?.email}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-3 px-4 py-3">

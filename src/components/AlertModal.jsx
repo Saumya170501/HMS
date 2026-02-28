@@ -73,14 +73,14 @@ export default function AlertModal({ isOpen, onClose, onSave, editingAlert = nul
                 <form onSubmit={handleSubmit} className="p-4 space-y-4">
                     {/* Asset Selection */}
                     <div>
-                        <label className="block text-xs font-mono text-slate-400 mb-1">Asset Symbol</label>
+                        <label className="block text-xs text-slate-400 mb-1">Asset Symbol</label>
                         <div className="relative">
                             <input
                                 type="text"
                                 value={symbol}
                                 onChange={(e) => setSymbol(e.target.value.toUpperCase())}
                                 placeholder="e.g. BTC, AAPL, GOLD"
-                                className="w-full bg-slate-800 border border-dark-border rounded-lg px-3 py-2 text-slate-200 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full bg-slate-800 border border-dark-border rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 disabled={!!editingAlert}
                             />
                             {currentPrice && (
@@ -93,7 +93,7 @@ export default function AlertModal({ isOpen, onClose, onSave, editingAlert = nul
 
                     {/* Alert Type */}
                     <div>
-                        <label className="block text-xs font-mono text-slate-400 mb-1">Condition</label>
+                        <label className="block text-xs text-slate-400 mb-1">Condition</label>
                         <div className="grid grid-cols-3 gap-2">
                             <button
                                 type="button"
@@ -133,7 +133,7 @@ export default function AlertModal({ isOpen, onClose, onSave, editingAlert = nul
 
                     {/* Threshold */}
                     <div>
-                        <label className="block text-xs font-mono text-slate-400 mb-1">
+                        <label className="block text-xs text-slate-400 mb-1">
                             {type === 'percent_change' ? 'Percentage Threshold' : 'Target Price ($)'}
                         </label>
                         <input
@@ -142,7 +142,7 @@ export default function AlertModal({ isOpen, onClose, onSave, editingAlert = nul
                             value={threshold}
                             onChange={(e) => setThreshold(e.target.value)}
                             placeholder={type === 'percent_change' ? "5.0" : "50000"}
-                            className="w-full bg-slate-800 border border-dark-border rounded-lg px-3 py-2 text-slate-200 font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full bg-slate-800 border border-dark-border rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
 

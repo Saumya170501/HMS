@@ -209,7 +209,7 @@ export default function SearchBar({ onSelect, placeholder = "Search assets..." }
                                 <span>{getMarketIcon(result.market)}</span>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
-                                        <span className="font-mono font-bold text-primary">{result.symbol}</span>
+                                        <span className="font-bold text-primary">{result.symbol}</span>
                                         <span className={`text-xs uppercase ${getMarketColor(result.market)}`}>
                                             {result.market}
                                         </span>
@@ -218,8 +218,8 @@ export default function SearchBar({ onSelect, placeholder = "Search assets..." }
                                 </div>
                                 {result.price && (
                                     <div className="text-right">
-                                        <div className="font-mono text-sm text-primary">${result.price}</div>
-                                        <div className={`text-xs font-mono ${result.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                        <div className="text-sm text-primary">${result.price}</div>
+                                        <div className={`text-xs ${result.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                                             {result.change >= 0 ? '+' : ''}{result.change?.toFixed(2)}%
                                         </div>
                                     </div>

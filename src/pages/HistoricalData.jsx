@@ -13,10 +13,11 @@ import apiManager from '../services/apiManager';
 import { useAuth } from '../context/AuthContext';
 import * as userDataService from '../services/userDataService';
 import { watchlistService } from '../services/watchlistService';
+import { withFormattedDates } from '../utils/chartUtils';
 
 // Asset Type Selector
 const AssetTypeSelector = ({ value, onChange }) => (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
         {[
             { value: 'crypto', label: 'Crypto', icon: Coins, color: 'text-purple-500' },
             { value: 'stock', label: 'Stocks', icon: TrendingUp, color: 'text-blue-500' },
@@ -25,9 +26,9 @@ const AssetTypeSelector = ({ value, onChange }) => (
             <button
                 key={type.value}
                 onClick={() => onChange(type.value)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${value === type.value
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition-all ${value === type.value
                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
-                    : 'bg-slate-100 dark:bg-slate-800 text-secondary hover:text-primary hover:bg-slate-200 dark:hover:bg-slate-700 border border-border'
+                    : 'bg-white/50 dark:bg-slate-800/50 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white border border-slate-200/50 dark:border-slate-700/50 hover:bg-white dark:hover:bg-slate-700 backdrop-blur-sm shadow-sm hover:shadow-md hover:scale-105'
                     }`}
             >
                 <type.icon className={`w-4 h-4 ${value === type.value ? 'text-white' : type.color}`} />
@@ -39,7 +40,7 @@ const AssetTypeSelector = ({ value, onChange }) => (
 
 // Timeframe Selector
 const TimeframeSelector = ({ value, onChange }) => (
-    <div className="flex gap-1">
+    <div className="flex flex-wrap gap-1 bg-white/50 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm w-fit inline-flex shadow-sm">
         {[
             { value: 7, label: '1W' },
             { value: 30, label: '1M' },
@@ -50,9 +51,9 @@ const TimeframeSelector = ({ value, onChange }) => (
             <button
                 key={tf.value}
                 onClick={() => onChange(tf.value)}
-                className={`px-3 py-1.5 text-sm font-mono rounded transition-colors ${value === tf.value
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-slate-100 dark:bg-slate-800 text-secondary hover:text-primary border border-border'
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${value === tf.value
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
+                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
                     }`}
             >
                 {tf.label}
@@ -88,7 +89,7 @@ export default function HistoricalData() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [availableAssets, setAvailableAssets] = useState([]);
-    const [visibleRows, setVisibleRows] = useState(30);
+    const [visibleRows, setVisibleRows] = useState(10);
     const [isWatchlisted, setIsWatchlisted] = useState(false);
 
     // Load preferences from Firestore when user logs in
@@ -264,14 +265,14 @@ export default function HistoricalData() {
 
     // Reset visible rows when data changes
     useEffect(() => {
-        setVisibleRows(30);
+        setVisibleRows(10);
     }, [selectedSymbol, timeframe, assetType]);
 
     // Get display data (exclude the extra day used for calculation)
     const displayData = React.useMemo(() => {
-        if (priceData.length <= timeframe) return priceData;
-        // Return only the requested number of days (exclude the extra day)
-        return priceData.slice(-timeframe);
+        const raw = priceData.length <= timeframe ? priceData : priceData.slice(-timeframe);
+        const tfLabel = timeframe <= 7 ? '1W' : timeframe <= 30 ? '1M' : timeframe <= 90 ? '3M' : '1Y';
+        return withFormattedDates(raw, 'date', tfLabel);
     }, [priceData, timeframe]);
 
     // Calculate statistics based on displayed data
@@ -292,248 +293,280 @@ export default function HistoricalData() {
     const selectedAsset = availableAssets.find(a => a.symbol.toUpperCase() === selectedSymbol.toUpperCase());
 
     return (
-        <div className="p-6 space-y-6">
-            {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold text-primary">Historical Data</h1>
-                <p className="text-secondary text-sm font-mono">View historical price data for any asset</p>
-            </div>
-
-            {/* Controls */}
-            <div className="bg-surface border border-border rounded-xl p-4 space-y-4 shadow-sm">
-                {/* Asset Type Selection */}
-                <div>
-                    <label className="text-xs text-secondary uppercase tracking-wider mb-2 block">Asset Type</label>
-                    <AssetTypeSelector value={assetType} onChange={setAssetType} />
-                </div>
-
-                {/* Asset Selection */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="h-screen flex flex-col p-4 sm:p-6 md:p-8 animate-fadeIn overflow-hidden">
+            <div className="max-w-[1920px] w-full mx-auto flex-1 flex flex-col space-y-4 min-h-0">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                     <div>
-                        <label className="text-xs text-secondary uppercase tracking-wider mb-2 block">Select Asset</label>
-                        <div className="flex gap-2">
-                            <select
-                                value={selectedSymbol}
-                                onChange={(e) => setSelectedSymbol(e.target.value)}
-                                className="flex-1 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2.5 text-sm text-primary font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                {availableAssets.map((asset) => (
-                                    <option key={asset.symbol} value={asset.symbol}>
-                                        {asset.symbol} - {asset.name}
-                                    </option>
-                                ))}
-                            </select>
-                            <button
-                                type="button"
-                                onClick={handleToggleWatchlist}
-                                className={`p-2.5 rounded-lg border transition-all flex items-center justify-center gap-2 min-w-[54px] h-[44px] relative z-30 active:scale-90 cursor-pointer touch-manipulation
-                                    ${isWatchlisted
-                                        ? 'bg-yellow-500/10 border-yellow-500/40 text-yellow-500 shadow-sm shadow-yellow-500/10'
-                                        : 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-secondary hover:text-primary hover:border-slate-400'
-                                    }`}
-                                title={isWatchlisted ? "Remove from Watchlist" : "Add to Watchlist"}
-                            >
-                                <Star className={`w-5 h-5 pointer-events-none transition-transform duration-300 ${isWatchlisted ? 'fill-yellow-500 scale-110' : ''}`} />
-                            </button>
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-3">
+                            <LayoutGrid className="w-8 h-8 text-blue-500" /> Historical Data
+                        </h1>
+                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                            Deep dive into historical price trends and key statistics.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="bento-grid flex-1 min-h-0 overflow-hidden">
+                    {/* Controls - Full width */}
+                    <div className="bento-card bento-col-span-full xl:col-span-12 bento-row-span-1 p-4 sm:p-6 z-20 overflow-visible">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                            {/* Asset Type */}
+                            <div className="lg:col-span-4">
+                                <label className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-2 block">1. Asset Type</label>
+                                <AssetTypeSelector value={assetType} onChange={setAssetType} />
+                            </div>
+
+                            {/* Asset Selection */}
+                            <div className="lg:col-span-4">
+                                <label className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-2 block">2. Select Asset</label>
+                                <div className="flex gap-2">
+                                    <select
+                                        value={selectedSymbol}
+                                        onChange={(e) => setSelectedSymbol(e.target.value)}
+                                        className="flex-1 bg-white/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 transition-all cursor-pointer backdrop-blur-sm shadow-sm"
+                                    >
+                                        {availableAssets.map((asset) => (
+                                            <option key={asset.symbol} value={asset.symbol}>
+                                                {asset.symbol} - {asset.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        type="button"
+                                        onClick={handleToggleWatchlist}
+                                        aria-label={isWatchlisted ? "Remove from Watchlist" : "Add to Watchlist"}
+                                        className={`p-3 rounded-xl border transition-all flex items-center justify-center min-w-[54px] h-[46px] shadow-sm backdrop-blur-sm
+                                            ${isWatchlisted
+                                                ? 'bg-amber-500/10 border-amber-500/40 text-amber-500 hover:bg-amber-500/20'
+                                                : 'bg-white/50 dark:bg-slate-800/50 border-slate-200/50 dark:border-slate-700/50 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700'
+                                            }`}
+                                        title={isWatchlisted ? "Remove from Watchlist" : "Add to Watchlist"}
+                                    >
+                                        <Star className={`w-5 h-5 transition-transform duration-300 ${isWatchlisted ? 'fill-amber-500 scale-110' : ''}`} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Timeframe */}
+                            <div className="lg:col-span-4">
+                                <label className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-2 block">3. Timeframe</label>
+                                <TimeframeSelector value={timeframe} onChange={setTimeframe} />
+                            </div>
                         </div>
                     </div>
 
-                    <div>
-                        <label className="text-xs text-secondary uppercase tracking-wider mb-2 block">Timeframe</label>
-                        <TimeframeSelector value={timeframe} onChange={setTimeframe} />
+                    {/* Chart & Summary - Main Feature */}
+                    <div className="bento-card bento-col-span-full xl:col-span-8 bento-row-span-3 p-4 sm:p-6 flex flex-col group min-h-0">
+                        {/* Current Asset Info (Integrated into chart header) */}
+                        {selectedAsset ? (
+                            <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-6 border-b border-slate-200/50 dark:border-slate-800/50">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center border border-slate-200/50 dark:border-slate-700/50 shadow-inner">
+                                        <span className="text-xl font-black text-slate-900 dark:text-white">
+                                            {selectedAsset.symbol.charAt(0)}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-3">
+                                            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{selectedAsset.symbol}</h2>
+                                            {stats && (
+                                                <span className={`px-2.5 py-1 text-xs font-bold rounded-lg shadow-sm border ${stats.change >= 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'}`}>
+                                                    {stats.change >= 0 ? '+' : ''}{stats.change.toFixed(2)}%
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{selectedAsset.name}</p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Current Price</div>
+                                    <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                                        ${selectedAsset.price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="mb-6 flex items-center gap-2 text-slate-900 dark:text-white font-bold text-xl">
+                                <TrendingUp className="w-6 h-6 text-blue-500" /> Price History ({timeframe} days)
+                            </div>
+                        )}
+
+                        <div className="flex-1 min-h-0 mt-4">
+                            {isLoading ? (
+                                <div className="flex items-center justify-center h-full">
+                                    <svg className="animate-spin h-8 w-8 text-blue-500" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                    </svg>
+                                </div>
+                            ) : error ? (
+                                <div className="flex items-center justify-center gap-2 h-full text-red-400 p-6 bg-red-500/10 rounded-2xl border border-red-500/20">
+                                    <AlertTriangle className="w-5 h-5" />
+                                    <span className="font-bold">{error}</span>
+                                </div>
+                            ) : displayData.length > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor={stats?.change >= 0 ? '#10b981' : '#ef4444'} stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor={stats?.change >= 0 ? '#10b981' : '#ef4444'} stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                                        <XAxis
+                                            dataKey="formattedDate"
+                                            stroke="var(--text-secondary)"
+                                            tick={{ fill: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}
+                                            interval="preserveStartEnd"
+                                            tickLine={false}
+                                            axisLine={false}
+                                            dy={10}
+                                        />
+                                        <YAxis
+                                            stroke="var(--text-secondary)"
+                                            tick={{ fill: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}
+                                            domain={['auto', 'auto']}
+                                            tickFormatter={(val) => `$${val.toLocaleString()}`}
+                                            tickLine={false}
+                                            axisLine={false}
+                                            dx={-10}
+                                        />
+                                        <Tooltip
+                                            contentStyle={{
+                                                backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                                backdropFilter: 'blur(8px)',
+                                                borderColor: 'var(--border)',
+                                                borderRadius: '12px',
+                                                fontFamily: 'inherit',
+                                                color: '#fff',
+                                                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                                            }}
+                                            itemStyle={{ color: '#fff', fontWeight: 600 }}
+                                            labelStyle={{ color: '#94a3b8', marginBottom: '8px' }}
+                                            formatter={(value) => [`$${value.toLocaleString()}`, 'Price']}
+                                        />
+                                        <Area
+                                            type="monotone"
+                                            dataKey="close"
+                                            stroke={stats?.change >= 0 ? '#10b981' : '#ef4444'}
+                                            fillOpacity={1}
+                                            fill="url(#priceGradient)"
+                                            strokeWidth={3}
+                                            animationDuration={1500}
+                                            animationEasing="ease-out"
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="flex items-center justify-center h-full text-slate-500 dark:text-slate-400 font-medium">
+                                    No data available
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Right column: Statistics */}
+                    <div className="bento-col-span-full xl:col-span-4 bento-row-span-1 grid grid-cols-2 gap-2 sm:gap-4">
+                        {stats ? (
+                            <>
+                                <div className="bento-card p-5 group hover:scale-[1.02] transition-transform flex flex-col justify-center">
+                                    <div className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-2">Period High</div>
+                                    <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 break-words">${stats.high.toLocaleString()}</div>
+                                </div>
+                                <div className="bento-card p-5 group hover:scale-[1.02] transition-transform flex flex-col justify-center">
+                                    <div className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-2">Period Low</div>
+                                    <div className="text-xl font-black text-red-600 dark:text-red-400 break-words">${stats.low.toLocaleString()}</div>
+                                </div>
+                                <div className="bento-card p-5 group hover:scale-[1.02] transition-transform flex flex-col justify-center">
+                                    <div className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-2">Average</div>
+                                    <div className="text-xl font-black text-slate-900 dark:text-white break-words">${stats.avg.toLocaleString()}</div>
+                                </div>
+                                <div className="bento-card p-5 group hover:scale-[1.02] transition-transform flex flex-col justify-center">
+                                    <div className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-2">Net Change</div>
+                                    <div className={`text-xl font-black break-words ${stats.change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                        {stats.change >= 0 ? '+' : ''}{stats.change.toFixed(2)}%
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="col-span-2 bento-card p-6 flex flex-col items-center justify-center text-center text-slate-500">
+                                <AlertTriangle className="w-8 h-8 mb-3 opacity-50" />
+                                <p className="font-medium">Statistics unavailable</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Right column: Data Table */}
+                    <div className="bento-card bento-col-span-full xl:col-span-4 bento-row-span-2 p-0 flex flex-col overflow-hidden">
+                        <div className="p-5 border-b border-slate-200/50 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-10">
+                            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <LayoutGrid className="w-4 h-4 text-purple-500" /> Source Data ({displayData.length} records)
+                            </h3>
+                        </div>
+                        <div className="flex-1 overflow-y-auto custom-scrollbar bg-white/30 dark:bg-slate-900/30">
+                            {priceData.length > 0 ? (
+                                <div className="w-full overflow-x-auto">
+                                    <table className="w-full min-w-[350px] text-sm">
+                                        <thead className="bg-white/95 dark:bg-slate-900/95 sticky top-0 z-10 shadow-sm backdrop-blur-xl">
+                                            <tr>
+                                                <th className="text-left py-3 px-5 text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider border-b border-slate-200/50 dark:border-slate-800/50">Date</th>
+                                                <th className="text-right py-3 px-5 text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider border-b border-slate-200/50 dark:border-slate-800/50">Close</th>
+                                                <th className="text-right py-3 px-5 text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider border-b border-slate-200/50 dark:border-slate-800/50">Change</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-200/50 dark:divide-slate-800/50">
+                                            {(() => {
+                                                const fullDataReversed = [...priceData].reverse();
+                                                const displaySet = new Set(displayData.map(d => d.date));
+
+                                                return fullDataReversed
+                                                    .filter(row => displaySet.has(row.date))
+                                                    .slice(0, visibleRows)
+                                                    .map((row, idx) => {
+                                                        const fullIdx = fullDataReversed.findIndex(d => d.date === row.date);
+                                                        const prevClose = fullDataReversed[fullIdx + 1]?.close;
+                                                        const hasChange = prevClose !== undefined && prevClose !== null;
+                                                        const change = hasChange ? ((row.close - prevClose) / prevClose) * 100 : null;
+                                                        return (
+                                                            <tr key={row.date} className="hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors group">
+                                                                <td className="py-3 px-5 font-bold text-slate-700 dark:text-slate-300 text-xs">{row.date}</td>
+                                                                <td className="py-3 px-5 font-black text-slate-900 dark:text-white text-right ">
+                                                                    ${row.close.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                                                                </td>
+                                                                <td className={`py-3 px-5 font-bold text-right text-xs ${change === null
+                                                                    ? 'text-slate-400'
+                                                                    : change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                                                                    }`}>
+                                                                    {change !== null
+                                                                        ? `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`
+                                                                        : 'N/A'}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    });
+                                            })()}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="p-8 text-center text-slate-500 font-bold">No data available to display.</div>
+                            )}
+                        </div>
+                        {priceData.length > visibleRows && (
+                            <div className="p-3 border-t border-slate-200/50 dark:border-slate-800/50 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-md text-center shrink-0">
+                                <button
+                                    onClick={() => setVisibleRows(prev => Math.min(prev + 10, priceData.length))}
+                                    className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors py-1.5 px-4 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                >
+                                    Show More Records ({Math.min(priceData.length - visibleRows, 10)} more)
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
-
-            {/* Current Asset Info */}
-            {selectedAsset && (
-                <div className="bg-surface border border-border rounded-xl p-4 shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div>
-                                <h2 className="text-xl font-bold font-mono text-primary">{selectedAsset.symbol}</h2>
-                                <p className="text-sm text-secondary">{selectedAsset.name}</p>
-                            </div>
-                        </div>
-                        <div className="text-right">
-                            <div className="text-2xl font-mono font-bold text-primary">
-                                ${selectedAsset.price?.toLocaleString()}
-                            </div>
-                            <div className={`font-mono ${selectedAsset.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                {selectedAsset.change >= 0 ? '+' : ''}{selectedAsset.change?.toFixed(2)}%
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Chart */}
-            <div className="bg-surface border border-border rounded-xl p-4 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-primary">
-                        Price History ({timeframe} days)
-                    </h3>
-                    {stats && (
-                        <div className={`flex items-center gap-1 text-sm font-mono ${stats.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                            {stats.change >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                            <span>{Math.abs(stats.change).toFixed(2)}%</span>
-                        </div>
-                    )}
-                </div>
-
-                <div className="h-80">
-                    {isLoading ? (
-                        <div className="flex items-center justify-center h-full">
-                            <svg className="animate-spin h-8 w-8 text-blue-500" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                            </svg>
-                        </div>
-                    ) : error ? (
-                        <div className="flex items-center justify-center gap-2 h-full text-red-400">
-                            <AlertTriangle className="w-5 h-5" />
-                            <span>{error}</span>
-                        </div>
-                    ) : displayData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={displayData}>
-                                <defs>
-                                    <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor={stats?.change >= 0 ? '#22c55e' : '#ef4444'} stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor={stats?.change >= 0 ? '#22c55e' : '#ef4444'} stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} />
-                                <XAxis
-                                    dataKey="date"
-                                    stroke="var(--text-secondary)"
-                                    tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
-                                    interval="preserveStartEnd"
-                                />
-                                <YAxis
-                                    stroke="var(--text-secondary)"
-                                    tick={{ fill: 'var(--text-secondary)', fontSize: 11 }}
-                                    domain={['auto', 'auto']}
-                                    tickFormatter={(val) => `$${val.toLocaleString()}`}
-                                />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: 'var(--surface)',
-                                        borderColor: 'var(--border)',
-                                        borderRadius: '8px',
-                                        fontFamily: 'JetBrains Mono, monospace',
-                                        color: 'var(--text-primary)'
-                                    }}
-                                    itemStyle={{ color: 'var(--text-primary)' }}
-                                    labelStyle={{ color: 'var(--text-secondary)' }}
-                                    formatter={(value) => [`$${value.toLocaleString()}`, 'Price']}
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="close"
-                                    stroke={stats?.change >= 0 ? '#22c55e' : '#ef4444'}
-                                    fillOpacity={1}
-                                    fill="url(#priceGradient)"
-                                    strokeWidth={2}
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    ) : (
-                        <div className="flex items-center justify-center h-full text-secondary">
-                            No data available
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Statistics */}
-            {stats && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-surface border border-border rounded-xl p-4 shadow-sm">
-                        <div className="text-xs text-secondary uppercase tracking-wider mb-1">Period High</div>
-                        <div className="text-lg font-mono font-bold text-green-600 dark:text-green-400">${stats.high.toLocaleString()}</div>
-                    </div>
-                    <div className="bg-surface border border-border rounded-xl p-4 shadow-sm">
-                        <div className="text-xs text-secondary uppercase tracking-wider mb-1">Period Low</div>
-                        <div className="text-lg font-mono font-bold text-red-600 dark:text-red-400">${stats.low.toLocaleString()}</div>
-                    </div>
-                    <div className="bg-surface border border-border rounded-xl p-4 shadow-sm">
-                        <div className="text-xs text-secondary uppercase tracking-wider mb-1">Average</div>
-                        <div className="text-lg font-mono font-bold text-primary">${stats.avg.toLocaleString()}</div>
-                    </div>
-                    <div className="bg-surface border border-border rounded-xl p-4 shadow-sm">
-                        <div className="text-xs text-secondary uppercase tracking-wider mb-1">Change</div>
-                        <div className={`text-lg font-mono font-bold ${stats.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                            {stats.change >= 0 ? '+' : ''}{stats.change.toFixed(2)}%
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Data Table */}
-            {priceData.length > 0 && (
-                <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
-                    <div className="px-4 py-3 border-b border-border">
-                        <h3 className="font-semibold text-primary">Price Data ({displayData.length} days)</h3>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto">
-                        <table className="w-full">
-                            <thead className="bg-slate-100 dark:bg-slate-800/50 sticky top-0">
-                                <tr>
-                                    <th className="text-left px-4 py-2 text-xs text-secondary uppercase tracking-wider">Date</th>
-                                    <th className="text-right px-4 py-2 text-xs text-secondary uppercase tracking-wider">Close Price</th>
-                                    <th className="text-right px-4 py-2 text-xs text-secondary uppercase tracking-wider">Daily Change</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {/* Use full priceData for daily change calc, but only show displayData rows */}
-                                {(() => {
-                                    const fullDataReversed = [...priceData].reverse();
-                                    const displaySet = new Set(displayData.map(d => d.date));
-
-                                    return fullDataReversed
-                                        .filter(row => displaySet.has(row.date))
-                                        .slice(0, visibleRows)
-                                        .map((row, idx) => {
-                                            // Find this row's index in full reversed data for prev price
-                                            const fullIdx = fullDataReversed.findIndex(d => d.date === row.date);
-                                            const prevClose = fullDataReversed[fullIdx + 1]?.close;
-                                            const hasChange = prevClose !== undefined && prevClose !== null;
-                                            const change = hasChange ? ((row.close - prevClose) / prevClose) * 100 : null;
-                                            return (
-                                                <tr key={row.date} className="border-t border-border hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                                                    <td className="px-4 py-2 font-mono text-sm text-primary">{row.date}</td>
-                                                    <td className="px-4 py-2 font-mono text-sm text-primary text-right">
-                                                        ${row.close.toLocaleString()}
-                                                    </td>
-                                                    <td className={`px-4 py-2 font-mono text-sm text-right ${change === null
-                                                        ? 'text-secondary'
-                                                        : change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                                                        }`}>
-                                                        {change !== null
-                                                            ? `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`
-                                                            : 'N/A'}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        });
-                                })()}
-                            </tbody>
-                        </table>
-                    </div>
-                    {/* Show More Button */}
-                    {priceData.length > visibleRows && (
-                        <div className="p-3 border-t border-border bg-slate-50 dark:bg-slate-800/50 text-center">
-                            <button
-                                onClick={() => setVisibleRows(prev => Math.min(prev + 30, priceData.length))}
-                                className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                            >
-                                Show More Rows ({Math.min(priceData.length - visibleRows, 30)} more)
-                            </button>
-                        </div>
-                    )}
-                </div>
-            )}
         </div>
     );
 }
